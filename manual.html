@@ -93,6 +93,12 @@ th{background:var(--grid);font-size:13px}
 dl.faq dt{font-weight:700;margin-top:16px}
 dl.faq dt::before{content:"Q. ";color:var(--accent);font-family:var(--f-display);font-weight:400}
 dl.faq dd{margin:4px 0 0 0;padding-left:1.6em}
+.gen{display:grid;gap:8px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin:10px 0 16px}
+.gen label{font-size:12px;font-weight:700;color:var(--muted)}
+.gen input,.gen textarea{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:10px 12px;font-size:16px}
+.gen textarea{font-size:11px;line-height:1.5;resize:vertical}
+.gen .hint{font-size:12px;color:var(--muted);margin:0}
+.btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:12px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
 footer{margin-top:56px;font-size:12px;color:var(--muted)}
 </style>
 </head>
@@ -197,7 +203,7 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
     </svg>
   </div>
 
-  <div class="callout ok"><p><b>IDは1人が取れば十分です。</b>取った人が「友達用リンク」を送れば、友達はリンクを開くだけで設定が終わります（<a href="#share">2-4</a>）。友達がそれぞれ登録する必要はありません。</p></div>
+  <div class="callout ok"><p><b>IDは1人が取れば十分です。</b>取った人が「友達用リンク」を送れば、友達はリンクを開くだけで設定が終わります（<a href="#share">2-5</a>）。友達がそれぞれ登録する必要はありません。</p></div>
   <div class="callout ng"><p><b>IDなしでも使えます。</b>その場合は自動検索が動かないので、商品名と定価を手で入力して登録します。</p></div>
 
   <h3 id="rakuten">2-1　楽天のアプリIDとアクセスキーを取る（必須）</h3>
@@ -210,8 +216,8 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
     <li>作成後に表示される <b>アプリID</b> と <b>アクセスキー</b> をコピー</li>
   </ol>
 
-  <h3 id="yahoo">2-2　Yahoo!のClient ID（今は使えません）</h3>
-  <div class="callout ng"><p><b>Yahoo!のIDは今のアプリでは使えません。</b>Yahoo!の商品検索は「サーバーから使う」前提の仕組みで、スマホのブラウザから直接問い合わせると、ブラウザの安全機能（CORS）で返事が受け取れないためです。使うには間に「中継サーバー」を置く必要があり、対応を検討中です。以下は取得済みの人向けのメモとして残しています。</p></div>
+  <h3 id="yahoo">2-2　Yahoo!のClient IDを取る（任意・おすすめ）</h3>
+  <p>Yahoo!はバーコードの数字で<b>ぴったり同じ商品</b>を探せるので、楽天で見つからない商品が減ります。ただし、Yahoo!は次の「中継」とセットでしか使えません。</p>
   <ol class="do">
     <li><a href="https://e.developer.yahoo.co.jp/register" target="_blank" rel="noopener">アプリケーションの登録ページ</a>を開き、Yahoo! JAPAN IDでログイン</li>
     <li>「ID連携利用有無」は <span class="ui">ID連携を利用しない</span> を選ぶ（ログイン機能は使わないため）</li>
@@ -221,23 +227,55 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
     <li>ガイドラインを読んで <span class="ui">同意する</span> → <span class="ui">確認</span> → <span class="ui">登録</span></li>
     <li>表示された <b>Client ID</b>（<span class="mono">dj00…</span> で始まる長い文字）をコピー</li>
   </ol>
-  <div class="callout"><p>一緒に表示される <b>「シークレット」は使いません。</b>誰にも教えないでください。アプリに入れるのはClient IDだけです。</p></div>
+  <div class="callout"><p>一緒に表示される <b>「シークレット」は使いません。</b>誰にも教えないでください。</p></div>
 
-  <h3>2-3　アプリに入れる</h3>
+  <h3 id="relay">2-3　Yahoo!用の「中継」を作る（Yahoo!を使う人だけ・1人1回）</h3>
+  <div class="why">
+    <span class="tag">なぜ中継が必要？</span>
+    <h3>Yahoo!は「スマホのブラウザから直接」の問い合わせに返事をくれないからです</h3>
+    <ul>
+      <li>ブラウザには、知らないサイト同士が勝手にデータをやり取りしないようにする<b>安全機能（CORS）</b>があります。</li>
+      <li>楽天は「ブラウザから使ってOK」という返事の仕方に対応していますが、<b>Yahoo!は「サーバーから使う」前提</b>なので、ブラウザがYahoo!の返事をブロックします。<b>IDが正しくても失敗するのはこのためです。</b></li>
+      <li>そこで、<b>Cloudflare（クラウドフレア）という会社の無料サービスに、小さな中継プログラムを置きます。</b>アプリ → 中継 → Yahoo! の順に問い合わせ、中継が受け取った返事をアプリに渡します。</li>
+      <li>Yahoo!のClient IDは<b>中継の中にしまう</b>ので、アプリや友達用リンクにIDが出ることもなくなります。中継は<b>このアプリからの問い合わせだけ</b>を受け付けるように作ってあります。</li>
+      <li>無料プランで1日10万回まで使えます。5人で使うぶんには<b>お金はかかりません</b>（クレジットカードの登録も不要です）。</li>
+    </ul>
+  </div>
+  <p><b>① 中継プログラムを作る</b>：下の欄に2-2で取ったClient IDを貼って <span class="ui">コードをコピー</span> を押します。IDを埋め込んだプログラムがコピーされます（このページはIDをどこにも送りません）。</p>
+  <div class="gen">
+    <label for="genId">Yahoo! Client ID</label>
+    <input id="genId" class="mono" autocomplete="off" spellcheck="false" placeholder="dj00aiZp…">
+    <button class="btn" id="genCopy" type="button">コードをコピー</button>
+    <textarea id="genCode" class="mono" readonly rows="6" aria-label="中継プログラム"></textarea>
+    <p class="hint" id="genMsg">コピーできないときは、上の枠の中を長押しして「すべて選択」→「コピー」してください。</p>
+  </div>
+  <p><b>② Cloudflareに置く</b>（パソコンの方がやりやすいです。画面の名前は少し違うことがあります）</p>
+  <ol class="do">
+    <li><a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener">Cloudflareの登録ページ</a>でメールアドレスとパスワードを入れて無料アカウントを作り、届いたメールで確認する</li>
+    <li>ログイン後、左のメニュー（スマホは左上の☰）から <span class="ui">Workers &amp; Pages</span>（<span class="ui">Compute</span> の中にあることもあります）を開く</li>
+    <li><span class="ui">Create</span>（または <span class="ui">Create application</span>）→ <span class="ui">Start with Hello World!</span> を選ぶ</li>
+    <li>名前を <span class="mono">tsumipla-yahoo</span> にして <span class="ui">Deploy</span></li>
+    <li>完成画面で <span class="ui">Edit code</span> を押す → 左側のコードを全部消して、①でコピーしたコードを貼り付け → 右上の <span class="ui">Deploy</span></li>
+    <li>画面に出る <span class="mono">https://tsumipla-yahoo.〇〇〇.workers.dev</span> というURLをコピー（これが<b>中継URL</b>です）</li>
+  </ol>
+  <div class="callout ok"><p>中継URLをブラウザで直接開くと「積みプラ帳からのみ使えます」と出ます。<b>それで正常</b>です（アプリ以外からは使えないようにしてあるため）。</p></div>
+
+  <h3>2-4　アプリに入れる</h3>
   <div class="step">
     <div>
       <ol class="do">
         <li>アプリ右上の <span class="ui">⚙</span> を押す</li>
-        <li>「楽天 アプリID」と「楽天 アクセスキー」に、コピーした2つをそれぞれ貼り付け</li>
+        <li>「楽天 アプリID」と「楽天 アクセスキー」に、2-1でコピーした2つをそれぞれ貼り付け</li>
+        <li>Yahoo!の中継を作った人は、「Yahoo! 中継URL」に2-3の中継URLを貼り付け</li>
         <li><span class="ui">保存</span> を押す</li>
-        <li><span class="ui">接続テスト</span> を押して「楽天 OK（○件）」と出れば完了です</li>
+        <li><span class="ui">接続テスト</span> を押して「楽天 OK（○件）」「Yahoo! OK（○件）」と出れば完了です</li>
       </ol>
-      <p>「NG」と出たら、IDの前後に空白が入っていないか、全部コピーできているかを確認してください。</p>
+      <p>「NG」と出たら、前後に空白が入っていないか、全部コピーできているかを確認してください。</p>
     </div>
     <figure><img class="shot" src="manual/02-settings.jpg" alt="設定画面" loading="lazy"><figcaption>⚙を押すと開く設定画面</figcaption></figure>
   </div>
 
-  <h3 id="share">2-4　友達に同じ設定を送る</h3>
+  <h3 id="share">2-5　友達に同じ設定を送る</h3>
   <div class="step">
     <div>
       <ol class="do">
@@ -368,7 +406,8 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
     <thead><tr><th>相手</th><th>何に使う</th><th>送るもの</th><th>IDは</th></tr></thead>
     <tbody>
       <tr><td><b>楽天市場</b></td><td>バーコードの数字から商品名・箱絵・価格を調べる</td><td>バーコードの数字／検索語、アプリID・アクセスキー</td><td class="y">必要（無料）</td></tr>
-      <tr><td><b>Yahoo!ショッピング</b></td><td>（今は使えません。中継サーバーを用意したら予備として使う予定）</td><td>—</td><td>—</td></tr>
+      <tr><td><b>Yahoo!ショッピング</b></td><td>バーコードの数字でぴったり同じ商品を探す（中継を作った場合）</td><td>バーコードの数字／検索語（IDは中継の中）</td><td class="y">任意（無料）</td></tr>
+      <tr><td><b>Cloudflare</b></td><td>Yahoo!への問い合わせを中継する</td><td>バーコードの数字／検索語</td><td class="y">Yahoo!を使うなら必要（無料）</td></tr>
       <tr><td><b>バンダイホビーサイト</b></td><td>公式の定価・箱絵を<b>あなたが見に行く</b>ためのリンク</td><td>何も送らない（リンクを開くだけ）</td><td>不要</td></tr>
       <tr><td><b>GitHub Pages</b></td><td>アプリ本体を置いている場所</td><td>何も送らない</td><td>不要</td></tr>
     </tbody>
@@ -402,5 +441,22 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
   <p><a href="./">← アプリに戻る</a></p>
 </footer>
 </div>
+<script>
+(() => {
+  const id = document.getElementById('genId'), code = document.getElementById('genCode'), msg = document.getElementById('genMsg');
+  let tpl = '';
+  const PH = 'ここにYahooのClientIDを貼る';
+  const render = () => { const v = id.value.trim().replace(/['"\\\s]/g,''); code.value = tpl.replace(PH, v || PH); };
+  fetch('worker/yahoo-proxy.js').then(r => r.ok ? r.text() : Promise.reject()).then(t => { tpl = t; render(); })
+    .catch(() => { code.value = '読み込めませんでした。https://github.com/k09065953311-svg/tsumipla/blob/main/worker/yahoo-proxy.js を開いてコピーし、1行目のIDを書き換えてください。'; });
+  id.addEventListener('input', render);
+  document.getElementById('genCopy').addEventListener('click', async () => {
+    if(!id.value.trim()){ msg.textContent = '先にClient IDを貼り付けてください。'; id.focus(); return; }
+    render();
+    try{ await navigator.clipboard.writeText(code.value); msg.textContent = 'コピーしました。Cloudflareの画面に貼り付けてください。'; }
+    catch(e){ code.focus(); code.select(); msg.textContent = '自動でコピーできませんでした。選択された枠の中を長押しして「コピー」してください。'; }
+  });
+})();
+</script>
 </body>
 </html>

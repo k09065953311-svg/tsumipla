@@ -7,6 +7,7 @@
 - 所持数の＋／−、状態（積み・製作中・完成）、商品名検索、並び替え
 - データは各自のスマホ（ブラウザ）の中に保存。バックアップの書き出し／読み込みあり
 - 使い方マニュアル: manual.html（アプリの⚙設定からも開けます）
+- `worker/yahoo-proxy.js`: Yahoo!ショッピング検索の中継（Cloudflare Worker）。Yahoo! V3 API は CORS 非対応のため
 
 ## 使い方（友達向け）
 1. 配布されたURLをスマホのSafari / Chromeで開く

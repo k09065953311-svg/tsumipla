@@ -245,8 +245,8 @@ button{cursor:pointer}
 <div class="scrim" id="settingsSheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="sheethead"><h2 id="setTitle">設定</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
-    <p class="note">商品名と箱絵を自動で調べるには、楽天の「アプリID」と「アクセスキー」が必要です（無料）。取り方は下の「マニュアル」にあります。</p>
-    <div class="field"><label for="yId">Yahoo! ショッピング Client ID</label><input id="yId" class="mono" autocomplete="off" spellcheck="false"><span class="hint">※Yahoo!は今は使えません（ブラウザから直接つなげない仕組みのため）。楽天のIDを入れてください</span></div>
+    <p class="note">商品名と箱絵を自動で調べるには、楽天の「アプリID」と「アクセスキー」が必要です（無料）。Yahoo!の中継URLもあると、バーコードでぴったり探せます。取り方は下の「マニュアル」にあります。</p>
+    <div class="field"><label for="yId">Yahoo! 中継URL（任意）</label><input id="yId" class="mono" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://〜.workers.dev"><span class="hint">マニュアル「2-3」の中継を作った人だけ。バーコードでぴったり探せるようになります</span></div>
     <div class="field"><label for="rId">楽天 アプリID（applicationId）</label><input id="rId" class="mono" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label for="rKey">楽天 アクセスキー（accessKey）</label><input id="rKey" class="mono" autocomplete="off" spellcheck="false"></div>
     <div class="actions" style="margin-bottom:12px"><button class="btn primary" id="saveKeys">保存</button><button class="btn" id="testKeys">接続テスト</button></div>
@@ -321,7 +321,7 @@ function render(){
   if(!items.length){
     list.innerHTML = `<div class="empty"><h2>まだ1箱も登録されていません</h2>
       <ol><li>下の「バーコードで追加」を押す</li><li>箱の裏のバーコードにカメラを向ける</li><li>出てきた商品名・定価を確認して登録</li></ol>
-      <p class="note" style="margin-top:10px">${settings.yahooId||settings.rakutenId ? '準備OKです。さっそく1箱読み取ってみましょう。' : '自動で商品名を調べるには、右上の設定でアプリIDを入れてください。入れなくても手入力で登録できます。'}</p>
+      <p class="note" style="margin-top:10px">${settings.yahooProxy||settings.rakutenId ? '準備OKです。さっそく1箱読み取ってみましょう。' : '自動で商品名を調べるには、右上の設定でアプリIDを入れてください。入れなくても手入力で登録できます。'}</p>
       <div class="btns"><button class="btn" data-act="samples">見本を入れて画面を見てみる</button></div></div>`;
     return;
   }
@@ -480,11 +480,14 @@ async function getJSON(url){
   catch(e){ return await jsonp(url); }
 }
 async function yahoo({ jan, word }){
-  const p = new URLSearchParams({ appid: settings.yahooId, results:'20', image_size:'300' });
+  const p = new URLSearchParams({ results:'20', image_size:'300' });
   if(jan) p.set('jan_code', jan); else p.set('query', word);
   let d;
-  try{ const r = await fetch('https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?' + p); d = await r.json(); }
-  catch(e){ throw new Error('Yahoo!はブラウザから直接つなげない仕組みのため、今は使えません。楽天のIDを使ってください'); }
+  let r;
+  try{ r = await fetch(settings.yahooProxy.replace(/\/+$/,'') + '/?' + p); }
+  catch(e){ throw new Error('中継URLに接続できませんでした（URLを確認してください）'); }
+  try{ d = await r.json(); }catch(e){ throw new Error('中継からの返事が読めませんでした（HTTP ' + r.status + '）'); }
+  if(!r.ok && !d.Error && !d.error) throw new Error('HTTP ' + r.status);
   if(d.Error || d.error) throw new Error((d.Error && d.Error.Message) || d.error_description || 'エラー');
   return (d.hits||[]).map(h => ({ src:'Yahoo!', name:h.name, price:h.price, fixed: h.priceLabel && (h.priceLabel.fixedPrice || null),
     image:(h.exImage && h.exImage.url) || (h.image && h.image.medium) || '', url:h.url, jan:h.janCode||'' }));
@@ -517,9 +520,9 @@ function suggest(hits){
 async function lookup(q){
   step2(`<div class="spin" role="status" aria-label="検索中"></div><p class="note" style="text-align:center">${q.jan ? 'JAN ' + esc(q.jan) + ' を' : '「' + esc(q.word) + '」を'}調べています…</p>`);
   const hits = [], errs = [];
-  const hasKey = settings.yahooId || settings.rakutenId;
-  if(settings.rakutenId){ try{ hits.push(...await rakuten(q)); }catch(e){ errs.push('楽天：' + e.message); } }
-  if(settings.yahooId && hits.length < 3){ try{ hits.push(...await yahoo(q)); }catch(e){ errs.push('Yahoo!：' + e.message); } }
+  const hasKey = settings.yahooProxy || settings.rakutenId;
+  if(settings.yahooProxy){ try{ hits.push(...await yahoo(q)); }catch(e){ errs.push('Yahoo!：' + e.message); } }
+  if(settings.rakutenId && hits.length < 3){ try{ hits.push(...await rakuten(q)); }catch(e){ errs.push('楽天：' + e.message); } }
   showForm(q, hits, errs, hasKey);
 }
 function showForm(q, hits, errs, hasKey){
@@ -592,15 +595,16 @@ function openDetail(id){
 
 /* ---------- 設定・バックアップ ---------- */
 $('#openSettings').addEventListener('click', () => {
-  $('#yId').value = settings.yahooId||''; $('#rId').value = settings.rakutenId||''; $('#rKey').value = settings.rakutenKey||'';
+  $('#yId').value = settings.yahooProxy||''; $('#rId').value = settings.rakutenId||''; $('#rKey').value = settings.rakutenKey||'';
   openSheet('#settingsSheet');
 });
-function readKeys(){ settings = { ...settings, yahooId: $('#yId').value.trim(), rakutenId: $('#rId').value.trim(), rakutenKey: $('#rKey').value.trim() }; store(SKEY, settings); }
+function normProxy(v){ v = String(v||'').trim(); if(v && !/^https?:\/\//.test(v)) v = 'https://' + v; return v; }
+function readKeys(){ settings = { ...settings, yahooProxy: normProxy($('#yId').value), rakutenId: $('#rId').value.trim(), rakutenKey: $('#rKey').value.trim() }; store(SKEY, settings); }
 $('#saveKeys').onclick = () => { readKeys(); toast('保存しました'); render(); };
 $('#testKeys').onclick = async () => {
   readKeys();
   const word = 'ガンダム', out = [];
-  if(settings.yahooId){ try{ const h = await yahoo({ word }); out.push('Yahoo! OK（' + h.length + '件）'); }catch(e){ out.push('Yahoo! NG：' + e.message); } }
+  if(settings.yahooProxy){ try{ const h = await yahoo({ word }); out.push('Yahoo! OK（' + h.length + '件）'); }catch(e){ out.push('Yahoo! NG：' + e.message); } }
   if(settings.rakutenId){ try{ const h = await rakuten({ word }); out.push('楽天 OK（' + h.length + '件）'); }catch(e){ out.push('楽天 NG：' + e.message); } }
   toast(out.length ? out.join(' / ') : 'IDが入っていません');
 };
@@ -637,9 +641,9 @@ $('#delSamples').onclick = () => { items = items.filter(i=>!i.sample); saveItems
 
 $('#shareKeys').onclick = async () => {
   readKeys();
-  if(!settings.yahooId && !settings.rakutenId){ toast('先にIDを入れて保存してください'); return; }
+  if(!settings.yahooProxy && !settings.rakutenId){ toast('先にIDを入れて保存してください'); return; }
   const p = new URLSearchParams();
-  if(settings.yahooId) p.set('yid', settings.yahooId);
+  if(settings.yahooProxy) p.set('yp', settings.yahooProxy);
   if(settings.rakutenId) p.set('rid', settings.rakutenId);
   if(settings.rakutenKey) p.set('rkey', settings.rakutenKey);
   const url = location.href.split(/[?#]/)[0] + '?' + p;
@@ -651,8 +655,8 @@ $('#shareKeys').onclick = async () => {
 (() => {
   try{
     const p = new URLSearchParams(location.search);
-    if(!p.has('yid') && !p.has('rid')) return;
-    settings = { ...settings, yahooId: p.get('yid') || settings.yahooId || '', rakutenId: p.get('rid') || settings.rakutenId || '', rakutenKey: p.get('rkey') || settings.rakutenKey || '' };
+    if(!p.has('yp') && !p.has('rid')) return;
+    settings = { ...settings, yahooProxy: normProxy(p.get('yp') || settings.yahooProxy || ''), rakutenId: p.get('rid') || settings.rakutenId || '', rakutenKey: p.get('rkey') || settings.rakutenKey || '' };
     store(SKEY, settings);
     history.replaceState(null, '', location.pathname);
     setTimeout(() => toast('IDを設定しました。すぐに使えます'), 300);
