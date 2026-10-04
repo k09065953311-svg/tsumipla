@@ -245,11 +245,14 @@ button{cursor:pointer}
 <div class="scrim" id="settingsSheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="sheethead"><h2 id="setTitle">設定</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
-    <p class="note">商品名と箱絵を自動で調べるには、Yahoo!か楽天の「アプリID」が必要です（どちらか片方でOK、両方あると見つかりやすくなります）。取り方は配布した手順を見てください。</p>
+    <p class="note">商品名と箱絵を自動で調べるには、Yahoo!か楽天の「アプリID」が必要です（どちらか片方でOK、両方あると見つかりやすくなります）。取り方は下の「マニュアル」にあります。</p>
     <div class="field"><label for="yId">Yahoo! ショッピング Client ID</label><input id="yId" class="mono" autocomplete="off" spellcheck="false"><span class="hint">バーコード（JAN）でぴったり探せるので、こちらがおすすめです</span></div>
     <div class="field"><label for="rId">楽天 アプリID（applicationId）</label><input id="rId" class="mono" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label for="rKey">楽天 アクセスキー（accessKey）</label><input id="rKey" class="mono" autocomplete="off" spellcheck="false"></div>
-    <div class="actions" style="margin-bottom:22px"><button class="btn primary" id="saveKeys">保存</button><button class="btn" id="testKeys">接続テスト</button></div>
+    <div class="actions" style="margin-bottom:12px"><button class="btn primary" id="saveKeys">保存</button><button class="btn" id="testKeys">接続テスト</button></div>
+    <p class="note">友達には「友達用リンク」を送ると、開くだけで同じIDが設定されます。</p>
+    <div class="actions" style="margin-bottom:22px"><button class="btn" id="shareKeys">友達用リンク</button><a class="btn" href="manual.html" target="_blank" rel="noopener" style="text-align:center;text-decoration:none;color:var(--ink)">マニュアル</a></div>
+    <input id="shareUrl" class="mono" readonly hidden style="width:100%;margin:-12px 0 22px;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);font-size:12px">
 
     <h2 style="font-size:16px;margin-bottom:8px">バックアップ</h2>
     <p class="note">機種変更やブラウザのデータ削除でリストが消えないよう、ときどき書き出しておくと安心です。</p>
@@ -519,12 +522,13 @@ async function lookup(q){
 }
 function showForm(q, hits, errs, hasKey){
   const sg = suggest(hits);
-  const draft = { jan: q.jan || '', name: sg.name || (q.word||''), msrp: sg.msrp, msrpAuto: !!sg.msrp, image: sg.image };
+  const seen = new Set(), imgs = hits.filter(h => h.image && !seen.has(h.image) && seen.add(h.image)).slice(0,9);
+  const draft = { jan: q.jan || '', name: sg.name || (q.word||''), msrp: sg.msrp, msrpAuto: !!sg.msrp, image: imgs.length ? imgs[0].image : '' };
   const msg = !hasKey ? `<p class="note warn">アプリIDが未設定なので自動検索はしていません。商品名と定価を入力して登録できます（右上の設定でIDを入れると自動になります）。</p>`
     : !hits.length ? `<p class="note warn">ショップで見つかりませんでした。${errs.length ? esc(errs.join(' / ')) : '発売前や古い商品かもしれません。'}手入力で登録できます。</p>`
     : `<p class="note">ショップの情報から自動で入れました。<b>定価は「仮」</b>なので、公式ページで確認して直してください。箱絵は下から選べます。</p>`;
   step2(`${msg}
-    ${hits.length ? `<div class="cands" id="cands">${hits.filter(h=>h.image).slice(0,9).map((h,i)=>`<button class="cand" data-i="${i}" aria-pressed="${h.image===draft.image}"><img src="${esc(h.image)}" alt="" referrerpolicy="no-referrer"><span>${esc(cleanName(h.name))}</span><b>${yen(h.price)}</b></button>`).join('')}</div>` : ''}
+    ${imgs.length ? `<div class="cands" id="cands">${imgs.map((h,i)=>`<button class="cand" data-i="${i}" aria-pressed="${i===0}"><img src="${esc(h.image)}" alt="" referrerpolicy="no-referrer"><span>${esc(cleanName(h.name))}</span><b>${yen(h.price)}</b></button>`).join('')}</div>` : ''}
     <div class="field"><label for="fName">商品名</label><input id="fName" value="${esc(draft.name)}" placeholder="例：HG 1/144 ガンダムエアリアル"></div>
     <div class="inline">
       <div class="field" style="flex:1"><label for="fMsrp">定価（円・税込）</label><input id="fMsrp" class="mono" inputmode="numeric" value="${esc(draft.msrp)}"></div>
@@ -533,7 +537,6 @@ function showForm(q, hits, errs, hasKey){
     <div class="field"><label>状態</label><div class="chips" id="fSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k==='tsumi'}">${ST[k]}</button>`).join('')}</div></div>
     <div class="links"><a href="${bandaiLink(draft.name || draft.jan)}" target="_blank" rel="noopener" id="fLink">バンダイホビーサイトで定価を確認<span>公式 ↗</span></a></div>
     <div class="actions"><button class="btn" id="back2">やり直す</button><button class="btn primary" id="fSave">登録する（1個）</button></div>`);
-  const imgs = hits.filter(h=>h.image).slice(0,9);
   let status = 'tsumi', msrpTouched = false;
   const c = $('#cands');
   if(c) c.addEventListener('click', e => { const b = e.target.closest('.cand'); if(!b) return; draft.image = imgs[b.dataset.i].image; c.querySelectorAll('.cand').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
@@ -629,6 +632,30 @@ function addSamples(){
 }
 $('#addSamples').onclick = () => { addSamples(); closeSheet('#settingsSheet'); };
 $('#delSamples').onclick = () => { items = items.filter(i=>!i.sample); saveItems(); render(); toast('見本を消しました'); };
+
+$('#shareKeys').onclick = async () => {
+  readKeys();
+  if(!settings.yahooId && !settings.rakutenId){ toast('先にIDを入れて保存してください'); return; }
+  const p = new URLSearchParams();
+  if(settings.yahooId) p.set('yid', settings.yahooId);
+  if(settings.rakutenId) p.set('rid', settings.rakutenId);
+  if(settings.rakutenKey) p.set('rkey', settings.rakutenKey);
+  const url = location.href.split(/[?#]/)[0] + '?' + p;
+  const box = $('#shareUrl'); box.value = url; box.hidden = false;
+  try{ await navigator.clipboard.writeText(url); toast('コピーしました。LINEなどで友達に送ってください'); }
+  catch(e){ box.select(); toast('下のリンクを長押ししてコピーしてください'); }
+};
+/* 友達用リンクで開いたらIDを取り込む */
+(() => {
+  try{
+    const p = new URLSearchParams(location.search);
+    if(!p.has('yid') && !p.has('rid')) return;
+    settings = { ...settings, yahooId: p.get('yid') || settings.yahooId || '', rakutenId: p.get('rid') || settings.rakutenId || '', rakutenKey: p.get('rkey') || settings.rakutenKey || '' };
+    store(SKEY, settings);
+    history.replaceState(null, '', location.pathname);
+    setTimeout(() => toast('IDを設定しました。すぐに使えます'), 300);
+  }catch(e){}
+})();
 
 render();
 if('serviceWorker' in navigator && location.protocol==='https:' && !/claude|anthropic/.test(location.host)){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }

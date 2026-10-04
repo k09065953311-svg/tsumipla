@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>積みプラ帳 使い方マニュアル</title>
+<meta name="theme-color" content="#1D4FD7">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: アプリと同じ方眼紙の地に、組立説明書のような「工程番号」つきの章立て。スクショは右、説明は左（スマホでは縦積み）。 */
+:root{
+  --bg:#EEF1F5; --grid:#DCE2EA; --surface:#FFFFFF; --ink:#18202C; --muted:#5B6678; --line:#CBD3DE;
+  --accent:#1D4FD7; --accent-soft:#E3EAFD; --signal:#E23B2E; --caution:#F2B705; --caution-soft:#FFF6D6; --ok:#1E8A4C;
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141B; --grid:#1A202A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA5B6; --line:#2A3342;
+  --accent:#5B8BFF; --accent-soft:#1B2747; --signal:#FF6A5C; --caution:#F5C84A; --caution-soft:#2E2812; --ok:#4CC37E; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141B; --grid:#1A202A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA5B6; --line:#2A3342;
+  --accent:#5B8BFF; --accent-soft:#1B2747; --signal:#FF6A5C; --caution:#F5C84A; --caution-soft:#2E2812; --ok:#4CC37E; color-scheme:dark}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.8;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+img{max-width:100%}
+a{color:var(--accent)}
+.wrap{max-width:860px;margin:0 auto;padding:24px 16px 80px}
+header.hero{padding-block:8px 20px}
+.kicker{font-family:var(--f-mono);font-size:12px;letter-spacing:.12em;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:400;font-size:clamp(30px,8vw,44px);line-height:1.15;margin:.2em 0 .3em;text-wrap:balance}
+.lead{font-size:17px;max-width:36em;margin:0}
+.back{display:inline-block;margin-top:14px;font-weight:700;text-decoration:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 16px;color:var(--ink)}
+
+nav.toc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px 18px;margin:18px 0 8px}
+nav.toc b{font-size:13px;color:var(--muted);letter-spacing:.06em}
+nav.toc ol{margin:6px 0 0;padding-left:1.4em;columns:2;column-gap:28px}
+nav.toc li{break-inside:avoid}
+@media (max-width:560px){nav.toc ol{columns:1}}
+
+section{margin-top:44px}
+.sec-h{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.no{font-family:var(--f-display);font-size:20px;background:var(--ink);color:var(--bg);border-radius:10px;min-width:44px;height:44px;display:grid;place-items:center;flex:none}
+h2{font-family:var(--f-display);font-weight:400;font-size:clamp(22px,5.5vw,28px);line-height:1.3;margin:0;text-wrap:balance}
+h3{font-size:18px;margin:26px 0 6px;text-wrap:balance}
+p{margin:.5em 0;max-width:40em}
+
+.step{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:20px;align-items:start;margin:18px 0}
+.step.solo{grid-template-columns:minmax(0,1fr)}
+@media (max-width:640px){.step{grid-template-columns:minmax(0,1fr)}.step figure{max-width:300px}}
+figure{margin:0}
+.shot{display:block;width:100%;border-radius:22px;border:6px solid var(--ink);background:var(--ink);box-shadow:0 14px 30px -18px rgba(0,0,0,.6)}
+figcaption{font-size:12px;color:var(--muted);margin-top:6px;text-align:center}
+ol.do{padding-left:1.3em;margin:.4em 0}
+ol.do li{margin:.35em 0}
+.ui{font-weight:700;background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:0 6px;white-space:nowrap}
+code,.mono{font-family:var(--f-mono);font-size:.9em;overflow-wrap:anywhere}
+
+.why{background:var(--surface);border:2px solid var(--accent);border-radius:18px;padding:18px 18px 14px;margin:16px 0}
+.why .tag{display:inline-block;background:var(--accent);color:#fff;font-weight:700;font-size:13px;border-radius:6px;padding:1px 10px;letter-spacing:.06em}
+.why h3{margin-top:10px;font-size:20px}
+.why ul{padding-left:1.2em;margin:.4em 0}
+.why li{margin:.45em 0}
+.why li b{background:linear-gradient(transparent 62%,var(--caution-soft) 62%)}
+.callout{border-radius:14px;padding:12px 16px;margin:14px 0;background:var(--caution-soft);border-left:5px solid var(--caution)}
+.callout.ok{background:var(--accent-soft);border-left-color:var(--accent)}
+.callout.ng{border-left-color:var(--signal)}
+.callout p{margin:.2em 0}
+
+.flow{margin:16px 0;overflow-x:auto}
+.flow svg{display:block;width:100%;height:auto}
+.flow .v{display:none;max-width:340px;margin:0 auto}
+@media (max-width:600px){.flow .h{display:none}.flow .v{display:block}}
+.flow .t{fill:var(--ink);font-family:var(--f-body)}
+.flow .m{fill:var(--muted);font-family:var(--f-body)}
+.flow .box{fill:var(--surface);stroke:var(--line);stroke-width:1.5}
+.flow .boxa{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+.flow .arr{stroke:var(--accent);stroke-width:2.5;fill:none}
+.flow .arr2{stroke:var(--ok);stroke-width:2.5;fill:none}
+.flow .nope{stroke:var(--signal);stroke-width:2.5;fill:none;stroke-dasharray:6 5}
+
+.tbl{overflow-x:auto;margin:12px 0}
+table{border-collapse:collapse;width:100%;min-width:520px;background:var(--surface);border-radius:12px;overflow:hidden;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:10px 12px;text-align:left;vertical-align:top}
+th{background:var(--grid);font-size:13px}
+.y{color:var(--ok);font-weight:700}.n{color:var(--signal);font-weight:700}
+
+dl.faq dt{font-weight:700;margin-top:16px}
+dl.faq dt::before{content:"Q. ";color:var(--accent);font-family:var(--f-display);font-weight:400}
+dl.faq dd{margin:4px 0 0 0;padding-left:1.6em}
+footer{margin-top:56px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="kicker">TSUMIPLA-CHO / USER MANUAL</div>
+  <h1>積みプラ帳<br>使い方マニュアル</h1>
+  <p class="lead">プラモの箱のバーコードを読むだけで、持っているキットの一覧ができるアプリです。最初に1回だけ「ID設定」をすると、商品名と箱絵が自動で入るようになります。</p>
+  <a class="back" href="./">← アプリを開く</a>
+</header>
+
+<nav class="toc" aria-label="目次">
+  <b>もくじ</b>
+  <ol>
+    <li><a href="#start">ホーム画面に追加する</a></li>
+    <li><a href="#id"><strong>ID設定（いちばん大事）</strong></a></li>
+    <li><a href="#add">プラモを登録する</a></li>
+    <li><a href="#list">一覧の見方と使い方</a></li>
+    <li><a href="#edit">直す・外す</a></li>
+    <li><a href="#backup">バックアップ</a></li>
+    <li><a href="#links">他サイトとの連携まとめ</a></li>
+    <li><a href="#faq">困ったとき</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section id="start">
+  <div class="sec-h"><span class="no">1</span><h2>ホーム画面に追加する</h2></div>
+  <div class="step">
+    <div>
+      <p>アプリはインストール不要です。URLを開くだけで使えます。</p>
+      <p class="mono">https://k09065953311-svg.github.io/tsumipla/</p>
+      <ol class="do">
+        <li>上のURLを <b>iPhoneはSafari</b>、<b>AndroidはChrome</b> で開く</li>
+        <li>iPhone：下の共有ボタン（□に↑）→ <span class="ui">ホーム画面に追加</span><br>Android：右上の︙ → <span class="ui">ホーム画面に追加</span></li>
+        <li>ホーム画面のアイコンから開くと、普通のアプリのように全画面で使えます</li>
+      </ol>
+      <div class="callout"><p><b>LINEの中で開かないでください。</b>LINEやX（Twitter）のアプリ内ブラウザだと、カメラが使えなかったりデータが消えやすかったりします。必ずSafariかChromeで開いてください。</p></div>
+    </div>
+    <figure><img class="shot" src="manual/01-start.jpg" alt="最初に開いたときの画面" loading="lazy"><figcaption>最初に開いたときの画面</figcaption></figure>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="id">
+  <div class="sec-h"><span class="no">2</span><h2>ID設定（いちばん大事）</h2></div>
+
+  <div class="why">
+    <span class="tag">なぜ必要？</span>
+    <h3>アプリは「バーコードの数字」しか読めないからです</h3>
+    <p>箱のバーコードを読むと、アプリにわかるのは <span class="mono">4573102616289</span> のような13桁の数字（JANコード）だけです。この数字が「HG ガンダムエアリアル」だと知っているのは、<b>商品を売っているお店のデータベース</b>です。</p>
+    <ul>
+      <li><b>このアプリは商品データを持っていません。</b>何万点もあるプラモの情報を自分で集めて、新商品が出るたびに更新し続けるのは個人では無理だからです。</li>
+      <li>そこで、Yahoo!ショッピングや楽天市場が無料で公開している「商品検索の窓口（API）」に、<b>数字を渡して商品名・箱絵・価格を教えてもらいます。</b></li>
+      <li>その窓口を使うには、<b>「誰が使っているか」を名乗るためのID</b>が必要です。Yahoo!は、使いすぎや迷惑行為を防ぐためにIDで利用者と使用状況を確認しています。これがアプリの設定に入れる「Client ID」です。</li>
+      <li><b>IDは無料</b>で、お金はかかりません。お店に送るのは「バーコードの数字」か「検索した言葉」だけで、<b>あなたのプラモのリストは送りません。</b></li>
+    </ul>
+  </div>
+
+  <div class="flow" aria-label="IDがあるときの情報の流れ">
+    <svg class="h" viewBox="0 0 640 250" role="img">
+      <rect class="box" x="10" y="80" width="130" height="80" rx="12"/>
+      <text class="t" x="75" y="115" font-size="15" text-anchor="middle" font-weight="700">📦 箱のバーコード</text>
+      <text class="m" x="75" y="140" font-size="12" text-anchor="middle">4573102616289</text>
+      <path class="arr" d="M142 120 H198"/><path class="arr" d="M190 113 l8 7 -8 7"/>
+      <rect class="boxa" x="200" y="70" width="160" height="100" rx="14"/>
+      <text class="t" x="280" y="105" font-size="16" text-anchor="middle" font-weight="700">積みプラ帳</text>
+      <text class="m" x="280" y="128" font-size="12" text-anchor="middle">数字しかわからない</text>
+      <text class="m" x="280" y="148" font-size="12" text-anchor="middle">＋ あなたのID</text>
+      <path class="arr" d="M362 100 H448"/><path class="arr" d="M440 93 l8 7 -8 7"/>
+      <text class="t" x="405" y="88" font-size="12" text-anchor="middle">① IDと数字で質問</text>
+      <rect class="box" x="450" y="60" width="180" height="120" rx="14"/>
+      <text class="t" x="540" y="98" font-size="15" text-anchor="middle" font-weight="700">Yahoo!ショッピング</text>
+      <text class="t" x="540" y="120" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="m" x="540" y="146" font-size="12" text-anchor="middle">商品データを持っている</text>
+      <path class="arr2" d="M448 145 H362"/><path class="arr2" d="M370 138 l-8 7 8 7"/>
+      <text class="t" x="405" y="166" font-size="12" text-anchor="middle">② 商品名・箱絵・価格</text>
+      <text class="m" x="320" y="225" font-size="13" text-anchor="middle">IDがないと①の質問ができないので、商品名を自分で打ち込むことになります</text>
+    </svg>
+    <svg class="v" viewBox="0 0 340 470" role="img">
+      <rect class="box" x="70" y="10" width="200" height="66" rx="12"/>
+      <text class="t" x="170" y="38" font-size="15" text-anchor="middle" font-weight="700">📦 箱のバーコード</text>
+      <text class="m" x="170" y="60" font-size="12" text-anchor="middle">4573102616289</text>
+      <path class="arr" d="M170 78 V112"/><path class="arr" d="M163 104 l7 8 7-8"/>
+      <rect class="boxa" x="60" y="114" width="220" height="86" rx="14"/>
+      <text class="t" x="170" y="144" font-size="16" text-anchor="middle" font-weight="700">積みプラ帳</text>
+      <text class="m" x="170" y="166" font-size="12" text-anchor="middle">数字しかわからない</text>
+      <text class="m" x="170" y="186" font-size="12" text-anchor="middle">＋ あなたのID</text>
+      <path class="arr" d="M120 202 V268"/><path class="arr" d="M113 260 l7 8 7-8"/>
+      <text class="t" x="112" y="240" font-size="12" text-anchor="end">① IDと数字で質問</text>
+      <path class="arr2" d="M220 268 V202"/><path class="arr2" d="M213 210 l7-8 7 8"/>
+      <text class="t" x="228" y="232" font-size="12">② 商品名・</text>
+      <text class="t" x="228" y="250" font-size="12">箱絵・価格</text>
+      <rect class="box" x="50" y="270" width="240" height="100" rx="14"/>
+      <text class="t" x="170" y="304" font-size="15" text-anchor="middle" font-weight="700">Yahoo!ショッピング</text>
+      <text class="t" x="170" y="326" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="m" x="170" y="350" font-size="12" text-anchor="middle">商品データを持っている</text>
+      <text class="m" x="170" y="405" font-size="12.5" text-anchor="middle">IDがないと①の質問ができないので、</text>
+      <text class="m" x="170" y="425" font-size="12.5" text-anchor="middle">商品名を自分で打ち込むことになります</text>
+    </svg>
+  </div>
+
+  <div class="callout ok"><p><b>IDは1人が取れば十分です。</b>取った人が「友達用リンク」を送れば、友達はリンクを開くだけで設定が終わります（<a href="#share">2-4</a>）。友達がそれぞれ登録する必要はありません。</p></div>
+  <div class="callout ng"><p><b>IDなしでも使えます。</b>その場合は自動検索が動かないので、商品名と定価を手で入力して登録します。</p></div>
+
+  <h3 id="yahoo">2-1　Yahoo!のClient IDを取る（おすすめ）</h3>
+  <p>Yahoo!はバーコードの数字で<b>ぴったり同じ商品</b>を探せるので、こちらをおすすめします。Yahoo! JAPAN IDでログインして、登録画面に入力していきます（画面はYahoo!側のものなので、このマニュアルには写真を載せていません）。</p>
+  <ol class="do">
+    <li><a href="https://e.developer.yahoo.co.jp/register" target="_blank" rel="noopener">アプリケーションの登録ページ</a>を開き、Yahoo! JAPAN IDでログイン</li>
+    <li>「ID連携利用有無」は <span class="ui">ID連携を利用しない</span> を選ぶ（ログイン機能は使わないため）</li>
+    <li>「利用者情報」は <span class="ui">個人</span> を選ぶ</li>
+    <li>「アプリケーション名」に <span class="mono">積みプラ帳</span></li>
+    <li>「サイトURL」に <span class="mono">https://k09065953311-svg.github.io/tsumipla/</span></li>
+    <li>ガイドラインを読んで <span class="ui">同意する</span> → <span class="ui">確認</span> → <span class="ui">登録</span></li>
+    <li>表示された <b>Client ID</b>（<span class="mono">dj00…</span> で始まる長い文字）をコピー</li>
+  </ol>
+  <div class="callout"><p>一緒に表示される <b>「シークレット」は使いません。</b>誰にも教えないでください。アプリに入れるのはClient IDだけです。</p></div>
+
+  <h3 id="rakuten">2-2　楽天のIDを取る（なくてもOK）</h3>
+  <p>Yahoo!で見つからない商品を補うために使います。楽天はバーコードの数字を「キーワード」として探すので、Yahoo!より見つかりにくいことがあります。</p>
+  <ol class="do">
+    <li><a href="https://webservice.rakuten.co.jp/app/create" target="_blank" rel="noopener">楽天ウェブサービスの新規アプリ作成ページ</a>を開き、楽天会員でログイン</li>
+    <li>アプリ名に <span class="mono">積みプラ帳</span>、アプリURLに上と同じURLを入力</li>
+    <li>「許可されたWebサイト」に <span class="mono">k09065953311-svg.github.io</span> を入力（<b>ここを忘れると楽天からの返事がブロックされます</b>）</li>
+    <li>利用目的は「個人のコレクション管理」、想定QPSは <span class="mono">1</span> で十分です</li>
+    <li>作成後に表示される <b>アプリID</b> と <b>アクセスキー</b> をコピー</li>
+  </ol>
+
+  <h3>2-3　アプリに入れる</h3>
+  <div class="step">
+    <div>
+      <ol class="do">
+        <li>アプリ右上の <span class="ui">⚙</span> を押す</li>
+        <li>「Yahoo! ショッピング Client ID」にコピーしたIDを貼り付け（楽天を取った人は楽天の2つも）</li>
+        <li><span class="ui">保存</span> を押す</li>
+        <li><span class="ui">接続テスト</span> を押して「Yahoo! OK（○件）」と出れば完了です</li>
+      </ol>
+      <p>「NG」と出たら、IDの前後に空白が入っていないか、全部コピーできているかを確認してください。</p>
+    </div>
+    <figure><img class="shot" src="manual/02-settings.jpg" alt="設定画面" loading="lazy"><figcaption>⚙を押すと開く設定画面</figcaption></figure>
+  </div>
+
+  <h3 id="share">2-4　友達に同じ設定を送る</h3>
+  <div class="step">
+    <div>
+      <ol class="do">
+        <li>IDを保存したあと、設定画面の <span class="ui">友達用リンク</span> を押す</li>
+        <li>リンクがコピーされるので、LINEなどで友達に送る（コピーできないときは下に出たリンクを長押し）</li>
+        <li>友達がそのリンクをSafari/Chromeで開くと「IDを設定しました」と出て、すぐ使えます</li>
+      </ol>
+      <div class="callout"><p>リンクにはIDが入っているので、<b>仲間内だけ</b>で送ってください。リストの中身は入っていません。</p></div>
+    </div>
+    <figure><img class="shot" src="manual/03-settings-share.jpg" alt="友達用リンクを作った画面" loading="lazy"><figcaption>下に友達用のリンクが出ます</figcaption></figure>
+  </div>
+</section>
+
+<!-- 3 -->
+<section id="add">
+  <div class="sec-h"><span class="no">3</span><h2>プラモを登録する</h2></div>
+  <h3>3-1　バーコードで読む</h3>
+  <div class="step">
+    <div>
+      <ol class="do">
+        <li>画面下の <span class="ui">バーコードで追加</span> を押す</li>
+        <li>初回は「カメラを使ってもいいか」聞かれるので <span class="ui">許可</span></li>
+        <li>箱の裏（側面のこともあります）のバーコードを白い枠に合わせる。読めると自動で次の画面に進みます（Androidは軽く震えます）</li>
+      </ol>
+      <p>読みにくいときは、明るい場所で、箱から15〜20cmほど離すと読みやすくなります。</p>
+      <p>カメラが使えないときは <span class="ui">バーコードを写真に撮って読む</span> でもOKです。</p>
+    </div>
+    <figure><img class="shot" src="manual/04-scan.jpg" alt="バーコード読み取り画面" loading="lazy"><figcaption>実際は枠の中にカメラの映像が映ります</figcaption></figure>
+  </div>
+
+  <h3>3-2　番号を手で入れる・商品名で探す</h3>
+  <div class="step">
+    <div>
+      <p><span class="ui">番号を入力</span>：バーコードの下にある13桁の数字を打って <span class="ui">調べる</span>。</p>
+      <p><span class="ui">商品名で探す</span>：箱を捨ててしまったキットや、バーコードがないものはこちら。「HG エアリアル」のように入れて探します。</p>
+    </div>
+    <figure><img class="shot" src="manual/05-jan.jpg" alt="番号入力画面" loading="lazy"><figcaption>番号を入力するタブ</figcaption></figure>
+  </div>
+
+  <h3>3-3　結果を確認して登録</h3>
+  <div class="step">
+    <div>
+      <ol class="do">
+        <li>ショップの情報から <b>商品名・定価・箱絵</b> が自動で入ります</li>
+        <li>箱絵はいくつかの候補から、気に入ったものを押して選べます</li>
+        <li>定価には <b>「仮」</b> マークが付きます（下の説明を読んでください）</li>
+        <li>状態（積み／製作中／完成）を選んで <span class="ui">登録する（1個）</span></li>
+      </ol>
+      <div class="why" style="border-color:var(--caution)">
+        <span class="tag" style="background:var(--caution);color:#18202C">なぜ「仮」？</span>
+        <p>ショップが出しているのは<b>「お店の売値」</b>で、メーカー希望小売価格（定価）とは違うことが多いからです。値引きや、品薄で高くなっている値段が混ざります。アプリは定価の情報があればそれを、なければ<b>一番多いお店の値段</b>を仮に入れています。</p>
+        <p><span class="ui">バンダイホビーサイトで定価を確認</span> を押すと公式サイトを探せるので、見比べて違っていたら数字を直してください。直すと「仮」マークが消えます。</p>
+      </div>
+    </div>
+    <figure><img class="shot" src="manual/06-result.jpg" alt="検索結果の確認画面" loading="lazy"><figcaption>箱絵は説明用のイメージです</figcaption></figure>
+  </div>
+
+  <h3>3-4　同じキットをもう1つ持っているとき</h3>
+  <div class="step">
+    <div>
+      <p>登録済みのバーコードを読むと「もう持っています」と出ます。<span class="ui">もう1個追加</span> を押すと所持数が1つ増えます。2重登録にはなりません。</p>
+    </div>
+    <figure><img class="shot" src="manual/08-dup.jpg" alt="もう持っていますの画面" loading="lazy"><figcaption>同じ箱を読んだとき</figcaption></figure>
+  </div>
+</section>
+
+<!-- 4 -->
+<section id="list">
+  <div class="sec-h"><span class="no">4</span><h2>一覧の見方と使い方</h2></div>
+  <div class="step">
+    <div>
+      <ul>
+        <li><b>積んでる箱</b>：状態が「積み」のキットの合計個数</li>
+        <li><b>所持 合計</b>：全部のキットの合計個数</li>
+        <li><b>積み資産</b>：「積み」のキットの 定価 × 個数 の合計</li>
+        <li><span class="ui">＋</span> <span class="ui">−</span>：所持数を増やす・減らす（最小は1個）</li>
+        <li><b>赤い「積み」の札</b>を押すと 積み → 製作中 → 完成 → 積み の順に切り替わります</li>
+        <li>左上の <b>HG・RG・MG</b> などのグレードは、商品名から自動で付きます</li>
+        <li>上の <span class="ui">すべて</span> <span class="ui">積み</span> などで絞り込み、右の欄で並び順（新しい順・名前順・定価順・グレード順）を変えられます</li>
+      </ul>
+    </div>
+    <figure><img class="shot" src="manual/07-list.jpg" alt="一覧画面" loading="lazy"><figcaption>登録したキットの一覧</figcaption></figure>
+  </div>
+  <div class="step">
+    <div>
+      <h3 style="margin-top:0">商品名で検索</h3>
+      <p>上の検索欄に言葉を入れると、その場で絞り込まれます。<b>ひらがな・カタカナ、全角・半角の違いは気にしなくて大丈夫</b>です（「えありある」でも「エアリアル」が見つかります）。「RG」のようにグレードでも探せます。</p>
+    </div>
+    <figure><img class="shot" src="manual/09-search.jpg" alt="検索している画面" loading="lazy"><figcaption>ひらがなで探しても見つかります</figcaption></figure>
+  </div>
+</section>
+
+<!-- 5 -->
+<section id="edit">
+  <div class="sec-h"><span class="no">5</span><h2>直す・外す</h2></div>
+  <div class="step">
+    <div>
+      <p>一覧で <b>商品名か箱絵</b> を押すと詳細画面が開きます。商品名・定価・所持数・状態を直して <span class="ui">保存</span>。</p>
+      <p><span class="ui">バンダイホビーサイトで見る</span> から、公式の箱絵や定価を確認できます。</p>
+    </div>
+    <figure><img class="shot" src="manual/10-detail.jpg" alt="詳細画面" loading="lazy"><figcaption>詳細・編集画面</figcaption></figure>
+  </div>
+  <div class="step">
+    <div>
+      <p>手放したキットは <span class="ui">リストから外す</span> → 確認が出るので <span class="ui">外す</span>。<b>元に戻せない</b>ので注意してください。</p>
+    </div>
+    <figure><img class="shot" src="manual/11-delete.jpg" alt="外す確認" loading="lazy"><figcaption>外す前に確認が出ます</figcaption></figure>
+  </div>
+</section>
+
+<!-- 6 -->
+<section id="backup">
+  <div class="sec-h"><span class="no">6</span><h2>バックアップ</h2></div>
+  <p>リストは<b>あなたのスマホの中（ブラウザ）だけ</b>に保存されています。サーバーには送っていないので、友達や他人に見られることはありません。そのかわり、次のときは消えてしまいます。</p>
+  <ul>
+    <li>機種変更したとき</li>
+    <li>ブラウザの「履歴とデータを消去」をしたとき</li>
+    <li>iPhoneのSafariで、7日以上このアプリを開かなかったとき（<b>ホーム画面に追加して使えば対象外</b>です）</li>
+  </ul>
+  <p>なので、<b>月に1回くらい</b> ⚙設定の <span class="ui">ファイルに書き出す</span> でバックアップを取ってください。ファイルはGoogleドライブやLINEのKeepなどに保存しておくと安心です。新しいスマホでは <span class="ui">読み込む</span> でそのファイルを選べば元に戻ります。</p>
+</section>
+
+<!-- 7 -->
+<section id="links">
+  <div class="sec-h"><span class="no">7</span><h2>他サイトとの連携まとめ</h2></div>
+  <p>このアプリがどのサイトと、何のためにやり取りしているかの一覧です。</p>
+  <div class="tbl"><table>
+    <thead><tr><th>相手</th><th>何に使う</th><th>送るもの</th><th>IDは</th></tr></thead>
+    <tbody>
+      <tr><td><b>Yahoo!ショッピング</b></td><td>バーコードの数字から商品名・箱絵・価格を調べる</td><td>バーコードの数字／検索語、Client ID</td><td class="y">必要（無料）</td></tr>
+      <tr><td><b>楽天市場</b></td><td>Yahoo!で見つからないときの予備</td><td>バーコードの数字／検索語、アプリID</td><td class="y">あれば使う（無料）</td></tr>
+      <tr><td><b>バンダイホビーサイト</b></td><td>公式の定価・箱絵を<b>あなたが見に行く</b>ためのリンク</td><td>何も送らない（リンクを開くだけ）</td><td>不要</td></tr>
+      <tr><td><b>GitHub Pages</b></td><td>アプリ本体を置いている場所</td><td>何も送らない</td><td>不要</td></tr>
+    </tbody>
+  </table></div>
+  <div class="why" style="border-color:var(--signal)">
+    <span class="tag" style="background:var(--signal)">なぜメーカーサイトから自動で取らない？</span>
+    <p>バンダイのサイトの箱絵には、バンダイやアニメ制作会社の<b>著作権</b>があり、サイトの規約で無断の転載・コピーが禁止されています。プログラムで自動的に画像や情報を集めること（スクレイピング）も、規約違反やアクセス停止の原因になります。</p>
+    <p>そこでこのアプリは、<b>ショップが「表示して使ってOK」として公式に提供している画像と情報</b>だけを使い、メーカーの公式情報は<b>リンクで案内</b>する形にしています。</p>
+  </div>
+</section>
+
+<!-- 8 -->
+<section id="faq">
+  <div class="sec-h"><span class="no">8</span><h2>困ったとき</h2></div>
+  <dl class="faq">
+    <dt>「ショップで見つかりませんでした」と出る</dt>
+    <dd>発売前の商品、古い商品、限定品（プレミアムバンダイ）などはショップに出ていないことがあります。商品名と定価を手で入れて登録してください。楽天のIDも入れておくと見つかる確率が上がります。</dd>
+    <dt>カメラが起動しない</dt>
+    <dd>LINEなどのアプリ内ブラウザで開いていないか確認してください。Safari/Chromeで開いても動かないときは、スマホの設定でブラウザのカメラを許可してください。それでもダメなら <span class="ui">写真に撮って読む</span> か <span class="ui">番号を入力</span> を使ってください。</dd>
+    <dt>商品名が長い・変な言葉が入っている</dt>
+    <dd>ショップが付けた名前をもとに整えているため、「送料無料」などが残ることがあります。登録前でも後でも、商品名は自由に直せます。</dd>
+    <dt>接続テストで「NG」と出る</dt>
+    <dd>IDのコピーが途中で切れているか、前後に空白が入っていることが多いです。楽天の場合は「許可されたWebサイト」に <span class="mono">k09065953311-svg.github.io</span> が入っているか確認してください。</dd>
+    <dt>友達のリストを見たい</dt>
+    <dd>今の版では、リストは各自のスマホの中だけです。見せ合いたい場合は、要望として教えてください。</dd>
+  </dl>
+</section>
+
+<footer>
+  <p>積みプラ帳（試作版）。商品情報は <a href="https://developer.yahoo.co.jp/sitemap/" target="_blank" rel="noopener">Webサービス by Yahoo! JAPAN</a> と <a href="https://developers.rakuten.com/" target="_blank" rel="noopener">Supported by Rakuten Developers</a> を利用しています。このマニュアルの画面写真の箱絵・IDは説明用の例です。</p>
+  <p><a href="./">← アプリに戻る</a></p>
+</footer>
+</div>
+</body>
+</html>
