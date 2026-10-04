@@ -1,0 +1,636 @@
+<title>積みプラ帳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: 組立説明書のような方眼の地に、ランナー（部品枠）風の一覧カード。下に大きな「追加」ボタン。 */
+:root{
+  --bg:#EEF1F5; --grid:#DCE2EA; --surface:#FFFFFF; --ink:#18202C; --muted:#5B6678; --line:#CBD3DE;
+  --accent:#1D4FD7; --accent-ink:#FFFFFF; --signal:#E23B2E; --caution:#F2B705; --ok:#1E8A4C;
+  --shadow:0 1px 0 rgba(24,32,44,.06),0 6px 18px -10px rgba(24,32,44,.25);
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141B; --grid:#1A202A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA5B6; --line:#2A3342;
+  --accent:#5B8BFF; --accent-ink:#0B1020; --signal:#FF6A5C; --caution:#F5C84A; --ok:#4CC37E;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.7); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141B; --grid:#1A202A; --surface:#181E28; --ink:#E8ECF2; --muted:#9AA5B6; --line:#2A3342;
+  --accent:#5B8BFF; --accent-ink:#0B1020; --signal:#FF6A5C; --caution:#F5C84A; --ok:#4CC37E;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 20px -12px rgba(0,0,0,.7); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px;-webkit-tap-highlight-color:transparent}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:720px;margin:0 auto;padding:16px 16px 120px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{display:flex;align-items:baseline;gap:10px;min-width:0}
+.brand h1{font-family:var(--f-display);font-weight:400;font-size:28px;margin:0;letter-spacing:.02em;line-height:1.1}
+.brand .tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.08em;white-space:nowrap}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;width:42px;height:42px;display:grid;place-items:center;flex:none}
+.iconbtn svg{width:20px;height:20px}
+
+.stats{display:grid;grid-template-columns:1fr 1fr 1.35fr;gap:8px;margin:16px 0 14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;min-width:0}
+.stat .k{font-size:11px;color:var(--muted);letter-spacing:.06em}
+.stat .v{font-family:var(--f-display);font-size:22px;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat .v small{font-family:var(--f-body);font-size:12px;margin-left:2px;color:var(--muted)}
+.stat.hi{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stat.hi .k,.stat.hi .v small{color:inherit;opacity:.75}
+
+.search{position:relative}
+.search input{width:100%;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--surface);padding:0 14px 0 42px;font-size:16px}
+.search svg{position:absolute;left:13px;top:14px;width:20px;height:20px;color:var(--muted)}
+.bar{display:flex;gap:8px;align-items:center;margin:10px 0 14px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+#fSt,#dSt{flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 11px;font-size:13px;white-space:nowrap;flex:none}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sort{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 8px;font-size:13px}
+
+/* list */
+.list{display:grid;gap:10px}
+.card{display:grid;grid-template-columns:84px 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px;box-shadow:var(--shadow);position:relative}
+.thumb{width:84px;aspect-ratio:1;border-radius:9px;overflow:hidden;background:var(--grid);display:grid;place-items:center;border:0;padding:0;max-width:100%}
+.thumb img{width:100%;height:100%;object-fit:contain;background:#fff}
+.ph{width:100%;height:100%;display:grid;place-items:center;font-family:var(--f-display);font-size:20px;color:#fff;position:relative;overflow:hidden}
+.ph::after{content:"";position:absolute;inset:auto -10% 18% -10%;height:16%;background:rgba(255,255,255,.18);transform:rotate(-14deg)}
+.body{min-width:0;display:flex;flex-direction:column;gap:4px}
+.row1{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.grade{font-family:var(--f-mono);font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;color:#fff;letter-spacing:.04em}
+.st{font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px;border:1.5px solid currentColor;background:transparent}
+.st.tsumi{color:var(--signal)} .st.wip{color:var(--caution)} .st.done{color:var(--ok)}
+.sample{font-size:10px;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 5px}
+.name{font-weight:700;font-size:14.5px;line-height:1.4;margin:0;text-align:left;background:none;border:0;padding:0;overflow-wrap:anywhere}
+.row3{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;flex-wrap:wrap}
+.price{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:14px}
+.price .tmp{font-family:var(--f-body);font-size:10px;color:var(--caution);border:1px solid currentColor;border-radius:3px;padding:0 3px;margin-left:4px;vertical-align:1px}
+.price .none{color:var(--muted);font-family:var(--f-body);font-size:12px}
+.stepper{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stepper button{width:38px;height:36px;border:0;background:var(--bg);font-size:20px;line-height:1}
+.stepper button:disabled{opacity:.35;cursor:default}
+.stepper output{min-width:42px;text-align:center;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.stepper output small{font-family:var(--f-body);font-size:11px;color:var(--muted)}
+
+.empty{background:var(--surface);border:1.5px dashed var(--line);border-radius:16px;padding:22px 18px;text-align:center}
+.empty h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0 0 8px}
+.empty ol{text-align:left;margin:10px auto;max-width:30em;padding-left:1.4em;color:var(--muted)}
+.empty .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px}
+
+/* buttons */
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 16px;font-weight:700}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.danger{color:var(--signal);border-color:currentColor;background:transparent}
+.btn.wide{width:100%}
+.fab{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom,0px));display:flex;align-items:center;gap:10px;
+  background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:14px 26px;font-weight:700;font-size:16px;box-shadow:0 10px 24px -8px rgba(29,79,215,.6);z-index:5;white-space:nowrap}
+.fab svg{width:22px;height:22px}
+
+/* sheets */
+.scrim{position:fixed;inset:0;background:rgba(8,12,20,.5);z-index:10;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--surface);width:100%;max-width:720px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom,0px));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+.sheet h2{font-family:var(--f-display);font-weight:400;font-size:20px;margin:0}
+.sheethead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--bg);border-radius:12px;padding:4px;margin-bottom:14px}
+.tabs button{border:0;background:transparent;border-radius:9px;padding:8px 4px;font-size:13px;font-weight:700;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+.field{display:grid;gap:4px;margin-bottom:12px}
+.field label{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.04em}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px;font-size:16px}
+.field .hint{font-size:12px;color:var(--muted)}
+.inline{display:flex;gap:8px}.inline>*{min-width:0}.inline input{flex:1}
+.mono{font-family:var(--f-mono)}
+.note{font-size:13px;color:var(--muted);background:var(--bg);border-radius:10px;padding:10px 12px;margin:0 0 12px}
+.note.warn{color:var(--ink);border-left:4px solid var(--caution)}
+.note a{color:var(--accent)}
+
+.cam{position:relative;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:4/3;max-width:100%}
+.cam video{width:100%;height:100%;object-fit:cover;display:block}
+.reticle{position:absolute;left:10%;right:10%;top:34%;bottom:34%;border:3px solid #fff;border-radius:10px;box-shadow:0 0 0 999px rgba(0,0,0,.35)}
+.reticle::after{content:"";position:absolute;left:4%;right:4%;top:50%;height:2px;background:var(--signal);animation:scan 1.6s ease-in-out infinite alternate}
+@keyframes scan{from{transform:translateY(-14px)}to{transform:translateY(14px)}}
+@media (prefers-reduced-motion:reduce){.reticle::after{animation:none}}
+.camtxt{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 2px #000}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:14px 0}
+.or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin-bottom:14px}
+.cand{border:2px solid var(--line);border-radius:10px;padding:4px;background:var(--surface);text-align:left;font-size:11px;line-height:1.3;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cand[aria-pressed="true"]{border-color:var(--accent)}
+.cand img{width:100%;aspect-ratio:1;object-fit:contain;background:#fff;border-radius:6px}
+.cand span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cand b{font-family:var(--f-mono);font-weight:500}
+.preview{display:grid;grid-template-columns:96px 1fr;gap:12px;margin-bottom:12px;align-items:start}
+.preview .thumb{width:96px}
+.links{display:grid;gap:8px;margin:4px 0 14px}
+.links a{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:var(--ink);text-decoration:none;font-weight:700}
+.links a span{font-weight:400;font-size:12px;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.actions .btn{flex:1}
+.confirm{border:1.5px solid var(--signal);border-radius:12px;padding:12px;margin-top:10px}
+.spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:rot .8s linear infinite;margin:20px auto}
+@keyframes rot{to{transform:rotate(360deg)}}
+.credit{font-size:11px;color:var(--muted);text-align:center;margin-top:28px}
+.credit a{color:inherit}
+.toast{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;z-index:30;max-width:calc(100% - 32px)}
+.dup{border:1.5px solid var(--accent);border-radius:12px;padding:12px;margin-bottom:12px}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><h1>積みプラ帳</h1><span class="tag">MY KIT STOCK</span></div>
+    <button class="iconbtn" id="openSettings" aria-label="設定">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    </button>
+  </header>
+
+  <section class="stats" aria-label="集計">
+    <div class="stat hi"><div class="k">積んでる箱</div><div class="v" id="sTsumi">0<small>箱</small></div></div>
+    <div class="stat"><div class="k">所持 合計</div><div class="v" id="sAll">0<small>箱</small></div></div>
+    <div class="stat"><div class="k">積み資産</div><div class="v" id="sYen">¥0</div></div>
+  </section>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="商品名で検索（例：エアリアル、RG）" autocomplete="off">
+  </div>
+  <div class="bar">
+    <div class="chips" role="group" aria-label="状態で絞り込み">
+      <button class="chip" data-f="all" aria-pressed="true">すべて</button>
+      <button class="chip" data-f="tsumi" aria-pressed="false">積み</button>
+      <button class="chip" data-f="wip" aria-pressed="false">製作中</button>
+      <button class="chip" data-f="done" aria-pressed="false">完成</button>
+    </div>
+    <select class="sort" id="sort" aria-label="並び順">
+      <option value="new">新しい順</option>
+      <option value="name">名前順</option>
+      <option value="price">定価順</option>
+      <option value="grade">グレード順</option>
+    </select>
+  </div>
+
+  <main class="list" id="list"></main>
+  <p class="credit" id="credit">
+    <a href="https://developer.yahoo.co.jp/sitemap/" target="_blank" rel="noopener">Webサービス by Yahoo! JAPAN</a> ・
+    <a href="https://developers.rakuten.com/" target="_blank" rel="noopener">Supported by Rakuten Developers</a><br>
+    箱絵はショップ検索APIの画像を表示しています。データはこのスマホの中だけに保存されます。
+  </p>
+</div>
+
+<button class="fab" id="openAdd">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 5v14M6 5v14M9 5v14M13 5v14M15 5v14M18 5v14M21 5v14"/></svg>
+  バーコードで追加
+</button>
+
+<!-- 追加シート -->
+<div class="scrim" id="addSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+    <div class="sheethead"><h2 id="addTitle">プラモを追加</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
+    <div id="addStep1">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-tab="scan" aria-selected="true">バーコード</button>
+        <button role="tab" data-tab="jan" aria-selected="false">番号を入力</button>
+        <button role="tab" data-tab="word" aria-selected="false">商品名で探す</button>
+      </div>
+      <div data-pane="scan">
+        <div class="cam" id="camBox" hidden>
+          <video id="video" playsinline muted></video>
+          <div class="reticle"></div>
+          <div class="camtxt">箱の裏のバーコードを枠に合わせてください</div>
+        </div>
+        <p class="note warn" id="camMsg" hidden></p>
+        <div class="or">カメラが使えないときは</div>
+        <label class="btn wide" style="display:block;text-align:center">
+          バーコードを写真に撮って読む
+          <input type="file" id="photo" accept="image/*" capture="environment" hidden>
+        </label>
+      </div>
+      <div data-pane="jan" hidden>
+        <div class="field">
+          <label for="janIn">JANコード（バーコードの下の13桁）</label>
+          <div class="inline"><input id="janIn" class="mono" inputmode="numeric" maxlength="13" placeholder="4573102…"><button class="btn primary" id="janGo">調べる</button></div>
+        </div>
+      </div>
+      <div data-pane="word" hidden>
+        <div class="field">
+          <label for="wordIn">商品名</label>
+          <div class="inline"><input id="wordIn" placeholder="例：HG エアリアル"><button class="btn primary" id="wordGo">探す</button></div>
+          <span class="hint">バーコードがない・箱を捨てた場合はこちら</span>
+        </div>
+      </div>
+    </div>
+    <div id="addStep2" hidden></div>
+  </div>
+</div>
+
+<!-- 詳細シート -->
+<div class="scrim" id="detailSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="detTitle">
+    <div class="sheethead"><h2 id="detTitle">キットの詳細</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
+    <div id="detailBody"></div>
+  </div>
+</div>
+
+<!-- 設定シート -->
+<div class="scrim" id="settingsSheet" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <div class="sheethead"><h2 id="setTitle">設定</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
+    <p class="note">商品名と箱絵を自動で調べるには、Yahoo!か楽天の「アプリID」が必要です（どちらか片方でOK、両方あると見つかりやすくなります）。取り方は配布した手順を見てください。</p>
+    <div class="field"><label for="yId">Yahoo! ショッピング Client ID</label><input id="yId" class="mono" autocomplete="off" spellcheck="false"><span class="hint">バーコード（JAN）でぴったり探せるので、こちらがおすすめです</span></div>
+    <div class="field"><label for="rId">楽天 アプリID（applicationId）</label><input id="rId" class="mono" autocomplete="off" spellcheck="false"></div>
+    <div class="field"><label for="rKey">楽天 アクセスキー（accessKey）</label><input id="rKey" class="mono" autocomplete="off" spellcheck="false"></div>
+    <div class="actions" style="margin-bottom:22px"><button class="btn primary" id="saveKeys">保存</button><button class="btn" id="testKeys">接続テスト</button></div>
+
+    <h2 style="font-size:16px;margin-bottom:8px">バックアップ</h2>
+    <p class="note">機種変更やブラウザのデータ削除でリストが消えないよう、ときどき書き出しておくと安心です。</p>
+    <div class="actions" style="margin-bottom:22px">
+      <button class="btn" id="exportBtn">ファイルに書き出す</button>
+      <label class="btn" style="text-align:center">読み込む<input type="file" id="importFile" accept="application/json,.json" hidden></label>
+    </div>
+    <h2 style="font-size:16px;margin-bottom:8px">見本データ</h2>
+    <div class="actions"><button class="btn" id="addSamples">見本を入れる</button><button class="btn danger" id="delSamples">見本を消す</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<script>
+(() => {
+'use strict';
+const KEY = 'tsumipla.v1', SKEY = 'tsumipla.settings.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const yen = n => (n || n === 0) && n !== '' ? '¥' + Number(n).toLocaleString('ja-JP') : '';
+function load(k, d){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; }catch(e){ return d; } }
+function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ toast('保存できませんでした（ブラウザの設定を確認してください）'); return false; } }
+
+let items = load(KEY, []);
+let settings = load(SKEY, {});
+const ui = { filter:'all', sort: load('tsumipla.sort','new'), q:'' };
+const saveItems = () => store(KEY, items);
+try{ navigator.storage && navigator.storage.persist && navigator.storage.persist(); }catch(e){}
+
+/* ---------- 文字の正規化・グレード判定 ---------- */
+const norm = s => String(s||'').normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[\s・\-ー_]/g,'');
+const GRADES = [
+  ['PG',  /\bPG\b|パーフェクトグレード/, '#2A2A2A'],
+  ['MG',  /\bMG(EX|SD)?\b|\bMGEX\b|マスターグレード/, '#2F5FA8'],
+  ['RG',  /\bRG\b|リアルグレード/, '#B3262E'],
+  ['HG',  /\bHG[A-Z]{0,4}\b|ハイグレード/, '#1D3A6E'],
+  ['EG',  /\bEG\b|ENTRY ?GRADE|エントリーグレード/, '#2E8F6A'],
+  ['SD',  /\bSD[A-Z]{0,3}\b|BB戦士|SDCS|クロスシルエット/, '#C77B12'],
+  ['RE',  /RE\/100/, '#6A4CA3'],
+  ['FM',  /\bFM\b|フルメカニクス/, '#3E6F8E'],
+  ['30MM',/30\s?MM|30\s?MINUTES MISSIONS/, '#5C6B2E'],
+  ['30MS',/30\s?MS|30\s?MINUTES SISTERS/, '#B0477E'],
+];
+function gradeOf(name){ const n = String(name||'').normalize('NFKC').toUpperCase(); for(const [g,re] of GRADES) if(re.test(n)) return g; return ''; }
+const gradeColor = g => (GRADES.find(x => x[0]===g)||[0,0,'#5B6678'])[2];
+const GRADE_ORDER = ['PG','MG','RG','HG','EG','SD','RE','FM','30MM','30MS',''];
+const ST = { tsumi:'積み', wip:'製作中', done:'完成' };
+const NEXT = { tsumi:'wip', wip:'done', done:'tsumi' };
+
+/* ---------- 一覧 ---------- */
+function thumbHTML(it, big){
+  if(it.image) return `<img src="${esc(it.image)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'ph',textContent:'${esc(it.grade||'KIT')}',style:'background:${gradeColor(it.grade)}'}))">`;
+  return `<div class="ph" style="background:${gradeColor(it.grade)}">${esc(it.grade || 'KIT')}</div>`;
+}
+function render(){
+  const tsumiQty = items.filter(i => i.status==='tsumi').reduce((a,i)=>a+i.qty,0);
+  const allQty = items.reduce((a,i)=>a+i.qty,0);
+  const yenSum = items.filter(i => i.status==='tsumi').reduce((a,i)=>a+(Number(i.msrp)||0)*i.qty,0);
+  $('#sTsumi').innerHTML = `${tsumiQty}<small>箱</small>`;
+  $('#sAll').innerHTML = `${allQty}<small>箱</small>`;
+  $('#sYen').textContent = '¥' + yenSum.toLocaleString('ja-JP');
+
+  const list = $('#list');
+  if(!items.length){
+    list.innerHTML = `<div class="empty"><h2>まだ1箱も登録されていません</h2>
+      <ol><li>下の「バーコードで追加」を押す</li><li>箱の裏のバーコードにカメラを向ける</li><li>出てきた商品名・定価を確認して登録</li></ol>
+      <p class="note" style="margin-top:10px">${settings.yahooId||settings.rakutenId ? '準備OKです。さっそく1箱読み取ってみましょう。' : '自動で商品名を調べるには、右上の設定でアプリIDを入れてください。入れなくても手入力で登録できます。'}</p>
+      <div class="btns"><button class="btn" data-act="samples">見本を入れて画面を見てみる</button></div></div>`;
+    return;
+  }
+  const q = norm(ui.q);
+  let rows = items.filter(i => (ui.filter==='all' || i.status===ui.filter) && (!q || norm(i.name).includes(q) || (i.jan||'').includes(q) || norm(i.grade).includes(q)));
+  const by = {
+    new: (a,b) => b.addedAt - a.addedAt,
+    name: (a,b) => a.name.localeCompare(b.name,'ja'),
+    price: (a,b) => (Number(b.msrp)||0) - (Number(a.msrp)||0),
+    grade: (a,b) => GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade) || a.name.localeCompare(b.name,'ja'),
+  }[ui.sort] || ((a,b)=>0);
+  rows.sort(by);
+  if(!rows.length){ list.innerHTML = `<div class="empty"><h2>見つかりませんでした</h2><p class="note">検索ことばや絞り込みを変えてみてください。</p></div>`; return; }
+  list.innerHTML = rows.map(it => `
+    <article class="card" data-id="${it.id}">
+      <button class="thumb" data-act="open" aria-label="${esc(it.name)}の詳細">${thumbHTML(it)}</button>
+      <div class="body">
+        <div class="row1">
+          ${it.grade ? `<span class="grade" style="background:${gradeColor(it.grade)}">${esc(it.grade)}</span>` : ''}
+          <button class="st ${it.status}" data-act="status" aria-label="状態：${ST[it.status]}（タップで変更）">${ST[it.status]}</button>
+          ${it.sample ? '<span class="sample">見本</span>' : ''}
+        </div>
+        <button class="name" data-act="open">${esc(it.name)}</button>
+        <div class="row3">
+          <span class="price">${it.msrp ? yen(it.msrp) + (it.msrpAuto ? '<span class="tmp">仮</span>' : '') : '<span class="none">定価 未入力</span>'}</span>
+          <div class="stepper">
+            <button data-act="dec" aria-label="1つ減らす" ${it.qty<=1?'disabled':''}>−</button>
+            <output>${it.qty}<small>個</small></output>
+            <button data-act="inc" aria-label="1つ増やす">＋</button>
+          </div>
+        </div>
+      </div>
+    </article>`).join('');
+}
+const byId = id => items.find(i => i.id === id);
+$('#list').addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if(!b) return;
+  if(b.dataset.act === 'samples'){ addSamples(); return; }
+  const it = byId(b.closest('.card').dataset.id); if(!it) return;
+  const a = b.dataset.act;
+  if(a==='inc'){ it.qty++; }
+  else if(a==='dec'){ if(it.qty>1) it.qty--; }
+  else if(a==='status'){ it.status = NEXT[it.status]; toast(`「${ST[it.status]}」にしました`); }
+  else if(a==='open'){ openDetail(it.id); return; }
+  saveItems(); render();
+});
+$('#q').addEventListener('input', e => { ui.q = e.target.value; render(); });
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  ui.filter = c.dataset.f; document.querySelectorAll('.chip').forEach(x => x.setAttribute('aria-pressed', x===c)); render();
+}));
+$('#sort').value = ui.sort;
+$('#sort').addEventListener('change', e => { ui.sort = e.target.value; store('tsumipla.sort', ui.sort); render(); });
+
+/* ---------- シート共通 ---------- */
+function openSheet(id){ $(id).hidden = false; document.body.style.overflow='hidden'; }
+function closeSheet(id){ $(id).hidden = true; if(id==='#addSheet') stopCam(); if(document.querySelectorAll('.scrim:not([hidden])').length===0) document.body.style.overflow=''; }
+document.querySelectorAll('.scrim').forEach(s => {
+  s.addEventListener('click', e => { if(e.target===s || e.target.closest('[data-close]')) closeSheet('#'+s.id); });
+});
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.scrim:not([hidden])').forEach(s => closeSheet('#'+s.id)); });
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastT); toastT=setTimeout(()=>t.hidden=true, 2400); }
+
+/* ---------- 追加：バーコード ---------- */
+let reader = null, curTab = 'scan';
+function setTab(tab){
+  curTab = tab;
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===tab));
+  document.querySelectorAll('[data-pane]').forEach(p => p.hidden = p.dataset.pane!==tab);
+  if(tab==='scan') startCam(); else stopCam();
+  if(tab==='jan') setTimeout(()=>$('#janIn').focus(),50);
+  if(tab==='word') setTimeout(()=>$('#wordIn').focus(),50);
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => setTab(b.dataset.tab)));
+$('#openAdd').addEventListener('click', () => { $('#addStep1').hidden=false; $('#addStep2').hidden=true; openSheet('#addSheet'); setTab('scan'); });
+
+function zxingReader(){
+  if(!window.ZXing) return null;
+  const hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+  return new ZXing.BrowserMultiFormatReader(hints, 300);
+}
+function camMsg(t){ const m=$('#camMsg'); m.hidden=!t; m.textContent=t||''; }
+async function startCam(){
+  camMsg('');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camMsg('このブラウザではカメラが使えません。下の「写真に撮って読む」か「番号を入力」を使ってください。'); return; }
+  if(!window.ZXing){ camMsg('読み取り部品を読み込めませんでした。電波の良い場所で開き直してください。'); return; }
+  stopCam();
+  $('#camBox').hidden = false;
+  reader = zxingReader();
+  try{
+    await reader.decodeFromConstraints({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } } }, $('#video'), (res) => {
+      if(res && validJan(res.getText())){ const code = res.getText(); stopCam(); found(code); }
+    });
+  }catch(err){
+    $('#camBox').hidden = true;
+    camMsg(err && err.name==='NotAllowedError' ? 'カメラの使用が許可されていません。ブラウザの設定でカメラを許可するか、下の方法を使ってください。' : 'カメラを起動できませんでした。下の「写真に撮って読む」か「番号を入力」を使ってください。');
+  }
+}
+function stopCam(){ try{ reader && reader.reset(); }catch(e){} reader = null; }
+$('#photo').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value=''; if(!f) return;
+  if(!window.ZXing){ toast('読み取り部品を読み込めませんでした'); return; }
+  const url = URL.createObjectURL(f);
+  try{ const r = await zxingReader().decodeFromImageUrl(url); if(validJan(r.getText())) found(r.getText()); else toast('JANコードではないようです'); }
+  catch(err){ toast('読み取れませんでした。バーコードを大きく、ピントを合わせて撮ってください'); }
+  finally{ URL.revokeObjectURL(url); }
+});
+function validJan(c){
+  if(!/^(\d{8}|\d{13})$/.test(c)) return false;
+  const d = c.split('').map(Number), chk = d.pop();
+  const sum = d.reverse().reduce((a,n,i)=>a + n*(i%2===0?3:1),0);
+  return (10 - sum%10)%10 === chk;
+}
+$('#janGo').addEventListener('click', () => {
+  const c = $('#janIn').value.replace(/\D/g,'');
+  if(!validJan(c)){ toast('13桁（または8桁）の番号を確認してください'); return; }
+  found(c);
+});
+$('#janIn').addEventListener('keydown', e => { if(e.key==='Enter') $('#janGo').click(); });
+$('#wordGo').addEventListener('click', () => { const w=$('#wordIn').value.trim(); if(w) lookup({ word:w }); });
+$('#wordIn').addEventListener('keydown', e => { if(e.key==='Enter') $('#wordGo').click(); });
+
+function found(code){
+  try{ navigator.vibrate && navigator.vibrate(60); }catch(e){}
+  const dup = items.find(i => i.jan === code);
+  if(dup){ showDup(dup); return; }
+  lookup({ jan:code });
+}
+function step2(html){ $('#addStep1').hidden=true; const s=$('#addStep2'); s.hidden=false; s.innerHTML=html; stopCam(); }
+function showDup(it){
+  step2(`<div class="dup"><p style="margin:0 0 6px;font-weight:700">もう持っています</p>
+    <div class="preview"><div class="thumb">${thumbHTML(it)}</div><div><div style="font-weight:700">${esc(it.name)}</div><div class="note" style="margin:6px 0 0">いま ${it.qty} 個</div></div></div>
+    <div class="actions"><button class="btn primary" id="dupInc">もう1個追加（${it.qty+1}個に）</button></div></div>
+    <button class="btn wide" id="back1">別の箱を読み取る</button>`);
+  $('#dupInc').onclick = () => { it.qty++; saveItems(); render(); closeSheet('#addSheet'); toast(`${it.name.slice(0,18)}… を ${it.qty} 個にしました`); };
+  $('#back1').onclick = () => { $('#addStep1').hidden=false; $('#addStep2').hidden=true; setTab(curTab); };
+}
+
+/* ---------- 商品検索（Yahoo! / 楽天） ---------- */
+let jsonpN = 0;
+function jsonp(url){
+  return new Promise((res, rej) => {
+    const cb = '__tp' + (++jsonpN) + Date.now(); const s = document.createElement('script');
+    const t = setTimeout(() => { done(); rej(new Error('応答がありません')); }, 12000);
+    function done(){ clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = d => { done(); res(d); };
+    s.onerror = () => { done(); rej(new Error('接続できませんでした（IDを確認してください）')); };
+    s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+async function getJSON(url){
+  try{ const r = await fetch(url); if(!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); }
+  catch(e){ return await jsonp(url); }
+}
+async function yahoo({ jan, word }){
+  const p = new URLSearchParams({ appid: settings.yahooId, results:'20', image_size:'300' });
+  if(jan) p.set('jan_code', jan); else p.set('query', word);
+  const d = await getJSON('https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?' + p);
+  if(d.Error || d.error) throw new Error((d.Error && d.Error.Message) || d.error_description || 'エラー');
+  return (d.hits||[]).map(h => ({ src:'Yahoo!', name:h.name, price:h.price, fixed: h.priceLabel && (h.priceLabel.fixedPrice || null),
+    image:(h.exImage && h.exImage.url) || (h.image && h.image.medium) || '', url:h.url, jan:h.janCode||'' }));
+}
+async function rakuten({ jan, word }){
+  const p = new URLSearchParams({ applicationId: settings.rakutenId, keyword: jan || word, hits:'20', formatVersion:'2' });
+  let base = 'https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601?';
+  if(settings.rakutenKey){ p.set('accessKey', settings.rakutenKey); base = 'https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260701?'; }
+  const d = await getJSON(base + p);
+  if(d.error) throw new Error(d.error_description || d.error);
+  return (d.Items||[]).map(h => { const it = h.Item || h; const img = (it.mediumImageUrls||[])[0];
+    return { src:'楽天', name:it.itemName, price:it.itemPrice, fixed:null, image: img ? String(img.imageUrl||img).replace(/_ex=\d+x\d+/,'_ex=300x300') : '', url:it.itemUrl, jan:'' }; });
+}
+function cleanName(n){
+  return String(n||'').normalize('NFKC')
+    .replace(/[【\[［(（<＜《][^】\]］)）>＞》]*[】\]］)）>＞》]/g,' ')
+    .replace(/送料無料|新品|未開封|未使用|即納|在庫あり|ポイント\d+倍|あす楽|正規品|おもちゃ|ホビー|返品種別[A-Z]?/g,' ')
+    .replace(/\s+/g,' ').trim();
+}
+function mode(nums){ const c = new Map(); nums.filter(n=>n>0).forEach(n => c.set(n,(c.get(n)||0)+1)); let best=null, bc=0; c.forEach((v,k)=>{ if(v>bc || (v===bc && k<best)){ best=k; bc=v; } }); return best; }
+function suggest(hits){
+  const names = hits.map(h => cleanName(h.name)).filter(n => n.length >= 6);
+  const cnt = new Map(); names.forEach(n => cnt.set(n,(cnt.get(n)||0)+1));
+  let name = [...cnt.entries()].sort((a,b)=> b[1]-a[1] || a[0].length-b[0].length)[0];
+  name = name ? name[0] : '';
+  const fixed = mode(hits.map(h => Number(h.fixed)||0));
+  const msrp = fixed || mode(hits.map(h => Number(h.price)||0)) || '';
+  return { name, msrp, image: (hits.find(h=>h.image)||{}).image || '' };
+}
+async function lookup(q){
+  step2(`<div class="spin" role="status" aria-label="検索中"></div><p class="note" style="text-align:center">${q.jan ? 'JAN ' + esc(q.jan) + ' を' : '「' + esc(q.word) + '」を'}調べています…</p>`);
+  const hits = [], errs = [];
+  const hasKey = settings.yahooId || settings.rakutenId;
+  if(settings.yahooId){ try{ hits.push(...await yahoo(q)); }catch(e){ errs.push('Yahoo!：' + e.message); } }
+  if(settings.rakutenId && (hits.length < 3)){ try{ hits.push(...await rakuten(q)); }catch(e){ errs.push('楽天：' + e.message); } }
+  showForm(q, hits, errs, hasKey);
+}
+function showForm(q, hits, errs, hasKey){
+  const sg = suggest(hits);
+  const draft = { jan: q.jan || '', name: sg.name || (q.word||''), msrp: sg.msrp, msrpAuto: !!sg.msrp, image: sg.image };
+  const msg = !hasKey ? `<p class="note warn">アプリIDが未設定なので自動検索はしていません。商品名と定価を入力して登録できます（右上の設定でIDを入れると自動になります）。</p>`
+    : !hits.length ? `<p class="note warn">ショップで見つかりませんでした。${errs.length ? esc(errs.join(' / ')) : '発売前や古い商品かもしれません。'}手入力で登録できます。</p>`
+    : `<p class="note">ショップの情報から自動で入れました。<b>定価は「仮」</b>なので、公式ページで確認して直してください。箱絵は下から選べます。</p>`;
+  step2(`${msg}
+    ${hits.length ? `<div class="cands" id="cands">${hits.filter(h=>h.image).slice(0,9).map((h,i)=>`<button class="cand" data-i="${i}" aria-pressed="${h.image===draft.image}"><img src="${esc(h.image)}" alt="" referrerpolicy="no-referrer"><span>${esc(cleanName(h.name))}</span><b>${yen(h.price)}</b></button>`).join('')}</div>` : ''}
+    <div class="field"><label for="fName">商品名</label><input id="fName" value="${esc(draft.name)}" placeholder="例：HG 1/144 ガンダムエアリアル"></div>
+    <div class="inline">
+      <div class="field" style="flex:1"><label for="fMsrp">定価（円・税込）</label><input id="fMsrp" class="mono" inputmode="numeric" value="${esc(draft.msrp)}"></div>
+      <div class="field" style="flex:1"><label for="fJan">JAN</label><input id="fJan" class="mono" inputmode="numeric" value="${esc(draft.jan)}"></div>
+    </div>
+    <div class="field"><label>状態</label><div class="chips" id="fSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k==='tsumi'}">${ST[k]}</button>`).join('')}</div></div>
+    <div class="links"><a href="${bandaiLink(draft.name || draft.jan)}" target="_blank" rel="noopener" id="fLink">バンダイホビーサイトで定価を確認<span>公式 ↗</span></a></div>
+    <div class="actions"><button class="btn" id="back2">やり直す</button><button class="btn primary" id="fSave">登録する（1個）</button></div>`);
+  const imgs = hits.filter(h=>h.image).slice(0,9);
+  let status = 'tsumi', msrpTouched = false;
+  const c = $('#cands');
+  if(c) c.addEventListener('click', e => { const b = e.target.closest('.cand'); if(!b) return; draft.image = imgs[b.dataset.i].image; c.querySelectorAll('.cand').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
+  $('#fSt').addEventListener('click', e => { const b=e.target.closest('[data-s]'); if(!b) return; status=b.dataset.s; $('#fSt').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+  $('#fMsrp').addEventListener('input', () => msrpTouched = true);
+  $('#fName').addEventListener('input', e => $('#fLink').href = bandaiLink(e.target.value || draft.jan));
+  $('#back2').onclick = () => { $('#addStep1').hidden=false; $('#addStep2').hidden=true; setTab(curTab); };
+  $('#fSave').onclick = () => {
+    const name = $('#fName').value.trim();
+    if(!name){ toast('商品名を入れてください'); $('#fName').focus(); return; }
+    const msrp = Number(String($('#fMsrp').value).replace(/[^\d]/g,'')) || '';
+    const it = { id: 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), jan: $('#fJan').value.replace(/\D/g,''), name, grade: gradeOf(name),
+      msrp, msrpAuto: !!msrp && draft.msrpAuto && !msrpTouched, qty:1, status, image: draft.image, addedAt: Date.now() };
+    items.push(it); saveItems(); render(); closeSheet('#addSheet'); toast('登録しました');
+  };
+}
+const bandaiLink = s => 'https://www.google.com/search?q=' + encodeURIComponent('site:bandai-hobby.net ' + (s||''));
+
+/* ---------- 詳細・編集 ---------- */
+function openDetail(id){
+  const it = byId(id); if(!it) return;
+  $('#detailBody').innerHTML = `
+    <div class="preview"><div class="thumb">${thumbHTML(it)}</div>
+      <div><div class="row1" style="margin-bottom:6px">${it.grade?`<span class="grade" style="background:${gradeColor(it.grade)}">${esc(it.grade)}</span>`:''}${it.jan?`<span class="mono" style="font-size:12px;color:var(--muted)">JAN ${esc(it.jan)}</span>`:''}</div>
+      <div style="font-weight:700">${esc(it.name)}</div></div></div>
+    <div class="links"><a href="${bandaiLink(it.name)}" target="_blank" rel="noopener">バンダイホビーサイトで見る<span>公式の箱絵・定価 ↗</span></a></div>
+    <div class="field"><label for="dName">商品名</label><input id="dName" value="${esc(it.name)}"></div>
+    <div class="inline">
+      <div class="field" style="flex:1"><label for="dMsrp">定価（円・税込）${it.msrpAuto?' <span class="price"><span class="tmp">仮</span></span>':''}</label><input id="dMsrp" class="mono" inputmode="numeric" value="${esc(it.msrp)}"></div>
+      <div class="field" style="flex:1"><label for="dQty">所持数</label><input id="dQty" class="mono" inputmode="numeric" value="${it.qty}"></div>
+    </div>
+    <div class="field"><label>状態</label><div class="chips" id="dSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k===it.status}">${ST[k]}</button>`).join('')}</div></div>
+    <div class="actions"><button class="btn danger" id="dDel">リストから外す</button><button class="btn primary" id="dSave">保存</button></div>
+    <div class="confirm" id="dConfirm" hidden><p style="margin:0 0 10px">「${esc(it.name)}」をリストから外します。元に戻せません。</p>
+      <div class="actions"><button class="btn" id="dNo">やめる</button><button class="btn danger" id="dYes">外す</button></div></div>`;
+  let status = it.status;
+  $('#dSt').addEventListener('click', e => { const b=e.target.closest('[data-s]'); if(!b) return; status=b.dataset.s; $('#dSt').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
+  $('#dSave').onclick = () => {
+    const name = $('#dName').value.trim(); if(!name){ toast('商品名を入れてください'); return; }
+    const msrp = Number(String($('#dMsrp').value).replace(/[^\d]/g,'')) || '';
+    if(String(msrp) !== String(it.msrp)) it.msrpAuto = false;
+    it.name = name; it.grade = gradeOf(name); it.msrp = msrp; it.status = status;
+    it.qty = Math.max(1, parseInt($('#dQty').value,10) || 1);
+    saveItems(); render(); closeSheet('#detailSheet'); toast('保存しました');
+  };
+  $('#dDel').onclick = () => $('#dConfirm').hidden = false;
+  $('#dNo').onclick = () => $('#dConfirm').hidden = true;
+  $('#dYes').onclick = () => { items = items.filter(x => x.id !== id); saveItems(); render(); closeSheet('#detailSheet'); toast('外しました'); };
+  openSheet('#detailSheet');
+}
+
+/* ---------- 設定・バックアップ ---------- */
+$('#openSettings').addEventListener('click', () => {
+  $('#yId').value = settings.yahooId||''; $('#rId').value = settings.rakutenId||''; $('#rKey').value = settings.rakutenKey||'';
+  openSheet('#settingsSheet');
+});
+function readKeys(){ settings = { ...settings, yahooId: $('#yId').value.trim(), rakutenId: $('#rId').value.trim(), rakutenKey: $('#rKey').value.trim() }; store(SKEY, settings); }
+$('#saveKeys').onclick = () => { readKeys(); toast('保存しました'); render(); };
+$('#testKeys').onclick = async () => {
+  readKeys();
+  const word = 'ガンダム', out = [];
+  if(settings.yahooId){ try{ const h = await yahoo({ word }); out.push('Yahoo! OK（' + h.length + '件）'); }catch(e){ out.push('Yahoo! NG：' + e.message); } }
+  if(settings.rakutenId){ try{ const h = await rakuten({ word }); out.push('楽天 OK（' + h.length + '件）'); }catch(e){ out.push('楽天 NG：' + e.message); } }
+  toast(out.length ? out.join(' / ') : 'IDが入っていません');
+};
+$('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify({ app:'tsumipla', v:1, exportedAt:new Date().toISOString(), items }, null, 1)], { type:'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'tsumipla-' + new Date().toISOString().slice(0,10) + '.json'; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('書き出しました');
+};
+$('#importFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value=''; if(!f) return;
+  try{
+    const d = JSON.parse(await f.text()); const arr = Array.isArray(d) ? d : d.items;
+    if(!Array.isArray(arr)) throw 0;
+    let n = 0; arr.forEach(x => { if(x && x.id && x.name && !byId(x.id)){ items.push({ qty:1, status:'tsumi', addedAt:Date.now(), ...x }); n++; } });
+    saveItems(); render(); toast(n + '件を読み込みました');
+  }catch(err){ toast('このファイルは読み込めませんでした'); }
+});
+const SAMPLES = [
+  ['HG 1/144 ガンダムエアリアル', 1980, 'tsumi', 2],
+  ['RG 1/144 νガンダム', 4950, 'tsumi', 1],
+  ['MG 1/100 ガンダムバルバトス', 6600, 'wip', 1],
+  ['ENTRY GRADE 1/144 RX-78-2 ガンダム', 990, 'done', 1],
+  ['HGUC 1/144 ザクII', 1650, 'tsumi', 1],
+];
+function addSamples(){
+  if(items.some(i=>i.sample)){ toast('見本はもう入っています'); return; }
+  SAMPLES.forEach(([name,msrp,status,qty],i) => items.push({ id:'sample'+i, jan:'', name, grade:gradeOf(name), msrp, msrpAuto:true, qty, status, image:'', addedAt:Date.now()-i*1000, sample:true }));
+  saveItems(); render(); toast('見本を入れました（設定から消せます）');
+}
+$('#addSamples').onclick = () => { addSamples(); closeSheet('#settingsSheet'); };
+$('#delSamples').onclick = () => { items = items.filter(i=>!i.sample); saveItems(); render(); toast('見本を消しました'); };
+
+render();
+if('serviceWorker' in navigator && location.protocol==='https:' && !/claude|anthropic/.test(location.host)){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+})();
+</script>
