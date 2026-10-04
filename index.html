@@ -84,6 +84,8 @@ button{cursor:pointer}
 .grade{font-family:var(--f-mono);font-size:11px;font-weight:500;padding:1px 6px;border-radius:4px;color:#fff;letter-spacing:.04em}
 .st{font-size:11px;font-weight:700;border-radius:4px;padding:1px 7px;border:1.5px solid currentColor;background:transparent}
 .st.tsumi{color:var(--signal)} .st.wip{color:var(--caution)} .st.done{color:var(--ok)}
+.pbtag{font-size:11px;font-weight:700;color:#fff;background:#C8102E;border-radius:4px;padding:1px 6px}
+.pbchip[aria-pressed="true"]{background:#C8102E;border-color:#C8102E;color:#fff}
 .sample{font-size:10px;color:var(--muted);border:1px dashed var(--line);border-radius:4px;padding:0 5px}
 .name{font-weight:700;font-size:14.5px;line-height:1.4;margin:0;text-align:left;background:none;border:0;padding:0;overflow-wrap:anywhere}
 .row3{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:auto;flex-wrap:wrap}
@@ -137,6 +139,10 @@ button{cursor:pointer}
 @keyframes scan{from{transform:translateY(-14px)}to{transform:translateY(14px)}}
 @media (prefers-reduced-motion:reduce){.reticle::after{animation:none}}
 .camtxt{position:absolute;left:0;right:0;bottom:10px;text-align:center;color:#fff;font-size:13px;text-shadow:0 1px 2px #000}
+.camctl{position:absolute;top:10px;right:10px;display:flex;gap:6px}
+.camb{border:1px solid rgba(255,255,255,.6);background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:700}
+.camb[aria-pressed="true"]{background:#F2B705;color:#18202C;border-color:#F2B705}
+.camtxt{padding:0 12px}
 .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:14px 0}
 .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
 
@@ -221,7 +227,8 @@ button{cursor:pointer}
         <div class="cam" id="camBox" hidden>
           <video id="video" playsinline muted></video>
           <div class="reticle"></div>
-          <div class="camtxt">箱の裏のバーコードを枠に合わせてください</div>
+          <div class="camtxt" id="camTip">箱の裏のバーコードを枠に合わせてください</div>
+          <div class="camctl"><button class="camb" id="torchBtn" type="button" aria-pressed="false" hidden>ライト</button><button class="camb" id="zoomBtn" type="button" hidden>ズーム 1×</button></div>
         </div>
         <p class="note warn" id="camMsg" hidden></p>
         <div class="or">カメラが使えないときは</div>
@@ -357,6 +364,7 @@ function render(){
         <div class="row1">
           ${it.grade ? `<span class="grade" style="background:${gradeColor(it.grade)}">${esc(it.grade)}</span>` : ''}
           <button class="st ${it.status}" data-act="status" aria-label="状態：${ST[it.status]}（タップで変更）">${ST[it.status]}</button>
+          ${it.pb ? '<span class="pbtag">プレバン</span>' : ''}
           ${it.sample ? '<span class="sample">見本</span>' : ''}
         </div>
         <button class="name" data-act="open">${esc(it.name)}</button>
@@ -415,36 +423,128 @@ $('#openAdd').addEventListener('click', () => { $('#addStep1').hidden=false; $('
 
 function zxingReader(){
   if(!window.ZXing) return null;
-  const hints = new Map();
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8]);
+  const F = ZXing.BarcodeFormat, hints = new Map();
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [F.EAN_13, F.EAN_8, F.UPC_A, F.UPC_E]);
   hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-  return new ZXing.BrowserMultiFormatReader(hints, 300);
+  return new ZXing.BrowserMultiFormatReader(hints, 150);
 }
 function camMsg(t){ const m=$('#camMsg'); m.hidden=!t; m.textContent=t||''; }
+/* 読み取った数字を JAN(13桁/8桁) にそろえる。UPC-A(12桁・海外版の箱) は先頭に0を付ける */
+function toJan(raw){
+  let c = String(raw||'').replace(/\D/g,'');
+  if(c.length === 12) c = '0' + c;
+  return validJan(c) ? c : '';
+}
+let stream = null, detectTimer = 0, hintTimer = 0, scanning = false;
 async function startCam(){
   camMsg('');
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ camMsg('このブラウザではカメラが使えません。下の「写真に撮って読む」か「番号を入力」を使ってください。'); return; }
-  if(!window.ZXing){ camMsg('読み取り部品を読み込めませんでした。電波の良い場所で開き直してください。'); return; }
   stopCam();
   $('#camBox').hidden = false;
+  $('#camTip').textContent = '箱の裏のバーコードを枠に合わせてください';
+  scanning = true;
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ audio:false, video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1920 }, height:{ ideal:1080 } } });
+  }catch(err){
+    scanning = false; $('#camBox').hidden = true;
+    camMsg(err && err.name==='NotAllowedError' ? 'カメラの使用が許可されていません。ブラウザの設定でカメラを許可するか、下の方法を使ってください。' : 'カメラを起動できませんでした。下の「写真に撮って読む」か「番号を入力」を使ってください。');
+    return;
+  }
+  if(!scanning){ stopTracks(); return; }
+  const video = $('#video'); video.srcObject = stream;
+  try{ await video.play(); }catch(e){}
+  setupCamControls();
+  // 8秒読めなければ、うまく読むコツを出す
+  hintTimer = setTimeout(() => { if(scanning) $('#camTip').textContent = '読めないときは：15〜20cm離す／光の反射を避けて少し傾ける／暗ければライト'; }, 8000);
+  // Android の Chrome などにある「標準のバーコード読み取り機能」を優先（速くて正確）
+  let native = null;
+  try{
+    if('BarcodeDetector' in window){
+      const fm = await BarcodeDetector.getSupportedFormats();
+      const want = ['ean_13','ean_8','upc_a','upc_e'].filter(f => fm.includes(f));
+      if(want.includes('ean_13')) native = new BarcodeDetector({ formats: want });
+    }
+  }catch(e){ native = null; }
+  if(native){
+    const tick = async () => {
+      if(!scanning) return;
+      try{
+        if(video.readyState >= 2){
+          const codes = await native.detect(video);
+          for(const c of codes){ const jan = toJan(c.rawValue); if(jan){ stopCam(); found(jan); return; } }
+        }
+      }catch(e){}
+      detectTimer = setTimeout(tick, 120);
+    };
+    tick();
+    return;
+  }
+  if(!window.ZXing){ camMsg('読み取り部品を読み込めませんでした。電波の良い場所で開き直してください。'); return; }
   reader = zxingReader();
   try{
-    await reader.decodeFromConstraints({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } } }, $('#video'), (res) => {
-      if(res && validJan(res.getText())){ const code = res.getText(); stopCam(); found(code); }
+    await reader.decodeFromStream(stream, video, (res) => {
+      if(!res || !scanning) return;
+      const jan = toJan(res.getText());
+      if(jan){ stopCam(); found(jan); }
     });
-  }catch(err){
-    $('#camBox').hidden = true;
-    camMsg(err && err.name==='NotAllowedError' ? 'カメラの使用が許可されていません。ブラウザの設定でカメラを許可するか、下の方法を使ってください。' : 'カメラを起動できませんでした。下の「写真に撮って読む」か「番号を入力」を使ってください。');
-  }
+  }catch(e){ if(scanning) camMsg('読み取りを始められませんでした。下の「写真に撮って読む」を使ってください。'); }
 }
-function stopCam(){ try{ reader && reader.reset(); }catch(e){} reader = null; }
+function stopTracks(){ try{ stream && stream.getTracks().forEach(t => t.stop()); }catch(e){} stream = null; }
+function stopCam(){
+  scanning = false; clearTimeout(detectTimer); clearTimeout(hintTimer);
+  try{ reader && reader.reset(); }catch(e){} reader = null;
+  stopTracks();
+  try{ $('#video').srcObject = null; }catch(e){}
+  $('#torchBtn').hidden = true; $('#zoomBtn').hidden = true;
+}
+/* ライト・ズーム・ピント（対応している機種だけボタンを出す） */
+function camTrack(){ return stream && stream.getVideoTracks()[0]; }
+function setupCamControls(){
+  const t = camTrack(); if(!t || !t.getCapabilities) return;
+  let caps = {}; try{ caps = t.getCapabilities(); }catch(e){}
+  if(caps.focusMode && caps.focusMode.includes('continuous')) t.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(()=>{});
+  $('#torchBtn').hidden = !caps.torch; $('#torchBtn').setAttribute('aria-pressed','false');
+  if(caps.zoom && caps.zoom.max >= 1.5){ $('#zoomBtn').hidden = false; $('#zoomBtn').dataset.z = '1'; $('#zoomBtn').textContent = 'ズーム 1×'; }
+}
+$('#torchBtn').addEventListener('click', () => {
+  const t = camTrack(); if(!t) return;
+  const on = $('#torchBtn').getAttribute('aria-pressed') !== 'true';
+  t.applyConstraints({ advanced:[{ torch:on }] }).then(() => $('#torchBtn').setAttribute('aria-pressed', String(on))).catch(() => toast('ライトを点けられませんでした'));
+});
+$('#zoomBtn').addEventListener('click', () => {
+  const t = camTrack(); if(!t) return;
+  let caps = {}; try{ caps = t.getCapabilities(); }catch(e){}
+  const next = $('#zoomBtn').dataset.z === '1' ? Math.min(2, caps.zoom.max) : Math.max(1, caps.zoom.min || 1);
+  t.applyConstraints({ advanced:[{ zoom:next }] }).then(() => { $('#zoomBtn').dataset.z = next > 1 ? '2' : '1'; $('#zoomBtn').textContent = 'ズーム ' + (next > 1 ? next.toFixed(1).replace('.0','') : '1') + '×'; }).catch(()=>{});
+});
+$('#video').addEventListener('click', () => {
+  const t = camTrack(); if(!t) return;
+  t.applyConstraints({ advanced:[{ focusMode:'single-shot' }] }).then(() => t.applyConstraints({ advanced:[{ focusMode:'continuous' }] })).catch(()=>{});
+});
+/* 写真から読む：大きすぎる写真は縮小し、だめなら中央を切り出してもう一度 */
+async function decodePhoto(file){
+  const img = await new Promise((res, rej) => { const u = URL.createObjectURL(file), im = new Image(); im.onload = () => { URL.revokeObjectURL(u); res(im); }; im.onerror = () => { URL.revokeObjectURL(u); rej(new Error('img')); }; im.src = u; });
+  const tries = [[0,0,1], [0.2,0.25,0.6]]; // [左, 上, 幅の割合]
+  for(const [x, y, w] of tries){
+    const sw = img.naturalWidth * w, sh = img.naturalHeight * (w === 1 ? 1 : 0.5);
+    const scale = Math.min(1, 1600 / Math.max(sw, sh));
+    const cv = document.createElement('canvas'); cv.width = Math.round(sw*scale); cv.height = Math.round(sh*scale);
+    cv.getContext('2d').drawImage(img, img.naturalWidth*x, img.naturalHeight*y, sw, sh, 0, 0, cv.width, cv.height);
+    if('BarcodeDetector' in window){
+      try{ const codes = await new BarcodeDetector({ formats:['ean_13','ean_8','upc_a','upc_e'] }).detect(cv); for(const c of codes){ const j = toJan(c.rawValue); if(j) return j; } }catch(e){}
+    }
+    if(window.ZXing){
+      try{ const r = await zxingReader().decodeFromImageUrl(cv.toDataURL('image/jpeg', 0.92)); const j = toJan(r.getText()); if(j) return j; }catch(e){}
+    }
+  }
+  return '';
+}
 $('#photo').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value=''; if(!f) return;
-  if(!window.ZXing){ toast('読み取り部品を読み込めませんでした'); return; }
-  const url = URL.createObjectURL(f);
-  try{ const r = await zxingReader().decodeFromImageUrl(url); if(validJan(r.getText())) found(r.getText()); else toast('JANコードではないようです'); }
-  catch(err){ toast('読み取れませんでした。バーコードを大きく、ピントを合わせて撮ってください'); }
-  finally{ URL.revokeObjectURL(url); }
+  toast('読み取り中…');
+  let jan = '';
+  try{ jan = await decodePhoto(f); }catch(err){}
+  if(jan) found(jan); else toast('読み取れませんでした。バーコードを画面いっぱいに、ピントを合わせて撮ってください');
 });
 function validJan(c){
   if(!/^(\d{8}|\d{13})$/.test(c)) return false;
@@ -453,8 +553,8 @@ function validJan(c){
   return (10 - sum%10)%10 === chk;
 }
 $('#janGo').addEventListener('click', () => {
-  const c = $('#janIn').value.replace(/\D/g,'');
-  if(!validJan(c)){ toast('13桁（または8桁）の番号を確認してください'); return; }
+  const c = toJan($('#janIn').value);
+  if(!c){ toast('13桁（または8桁）の番号を確認してください'); return; }
   found(c);
 });
 $('#janIn').addEventListener('keydown', e => { if(e.key==='Enter') $('#janGo').click(); });
@@ -530,8 +630,12 @@ function suggest(hits){
   name = name ? name[0] : '';
   const fixed = mode(hits.map(h => Number(h.fixed)||0));
   const msrp = fixed || mode(hits.map(h => Number(h.price)||0)) || '';
-  return { name, msrp, image: (hits.find(h=>h.image)||{}).image || '' };
+  const pbN = hits.filter(h => PB_RE.test(String(h.name||'').normalize('NFKC'))).length;
+  const pb = hits.length > 0 && pbN >= Math.max(1, Math.ceil(hits.length * 0.2));
+  return { name, msrp: pb ? '' : msrp, pb, image: (hits.find(h=>h.image)||{}).image || '' };
 }
+/* プレミアムバンダイ限定品の目印。ショップでは定価より高い転売価格のことが多いので、定価は自動で入れない */
+const PB_RE = /プレミアムバンダイ|プレバン|PB限定|魂ウェブ|p-bandai/i;
 async function lookup(q){
   step2(`<div class="spin" role="status" aria-label="検索中"></div><p class="note" style="text-align:center">${q.jan ? 'JAN ' + esc(q.jan) + ' を' : '「' + esc(q.word) + '」を'}調べています…</p>`);
   const hits = [], errs = [];
@@ -543,9 +647,10 @@ async function lookup(q){
 function showForm(q, hits, errs, hasKey){
   const sg = suggest(hits);
   const seen = new Set(), imgs = hits.filter(h => h.image && !seen.has(h.image) && seen.add(h.image)).slice(0,9);
-  const draft = { jan: q.jan || '', name: sg.name || (q.word||''), msrp: sg.msrp, msrpAuto: !!sg.msrp, image: imgs.length ? imgs[0].image : '' };
+  const draft = { jan: q.jan || '', name: sg.name || (q.word||''), msrp: sg.msrp, msrpAuto: !!sg.msrp, image: imgs.length ? imgs[0].image : '', pb: sg.pb || PB_RE.test(q.word||'') };
   const msg = !hasKey ? `<p class="note warn">アプリIDが未設定なので自動検索はしていません。商品名と定価を入力して登録できます（右上の設定でIDを入れると自動になります）。</p>`
     : !hits.length ? `<p class="note warn">ショップで見つかりませんでした。${errs.length ? esc(errs.join(' / ')) : '発売前や古い商品かもしれません。'}手入力で登録できます。</p>`
+    : draft.pb ? `<p class="note warn"><b>プレミアムバンダイ限定品</b>のようです。ショップの値段は定価より高い転売価格のことが多いので、<b>定価は空欄</b>にしています。下の「プレミアムバンダイで定価を確認」で公式ページを見て入力してください。</p>`
     : `<p class="note">ショップの情報から自動で入れました。<b>定価は「仮」</b>なので、公式ページで確認して直してください。箱絵は下から選べます。</p>`;
   step2(`${msg}
     ${imgs.length ? `<div class="cands" id="cands">${imgs.map((h,i)=>`<button class="cand" data-i="${i}" aria-pressed="${i===0}"><img src="${esc(h.image)}" alt="" referrerpolicy="no-referrer"><span>${esc(cleanName(h.name))}</span><b>${yen(h.price)}</b></button>`).join('')}</div>` : ''}
@@ -554,26 +659,34 @@ function showForm(q, hits, errs, hasKey){
       <div class="field" style="flex:1"><label for="fMsrp">定価（円・税込）</label><input id="fMsrp" class="mono" inputmode="numeric" value="${esc(draft.msrp)}"></div>
       <div class="field" style="flex:1"><label for="fJan">JAN</label><input id="fJan" class="mono" inputmode="numeric" value="${esc(draft.jan)}"></div>
     </div>
-    <div class="field"><label>状態</label><div class="chips" id="fSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k==='tsumi'}">${ST[k]}</button>`).join('')}</div></div>
-    <div class="links"><a href="${bandaiLink(draft.name || draft.jan)}" target="_blank" rel="noopener" id="fLink">バンダイホビーサイトで定価を確認<span>公式 ↗</span></a></div>
+    <div class="field"><label>状態</label><div class="chips" id="fSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k==='tsumi'}">${ST[k]}</button>`).join('')}<button class="chip pbchip" id="fPb" aria-pressed="${draft.pb}">プレバン限定</button></div></div>
+    <div class="links" id="fLinks">${officialLinks(draft.name || draft.jan, draft.pb)}</div>
     <div class="actions"><button class="btn" id="back2">やり直す</button><button class="btn primary" id="fSave">登録する（1個）</button></div>`);
   let status = 'tsumi', msrpTouched = false;
   const c = $('#cands');
   if(c) c.addEventListener('click', e => { const b = e.target.closest('.cand'); if(!b) return; draft.image = imgs[b.dataset.i].image; c.querySelectorAll('.cand').forEach(x=>x.setAttribute('aria-pressed', x===b)); });
   $('#fSt').addEventListener('click', e => { const b=e.target.closest('[data-s]'); if(!b) return; status=b.dataset.s; $('#fSt').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
   $('#fMsrp').addEventListener('input', () => msrpTouched = true);
-  $('#fName').addEventListener('input', e => $('#fLink').href = bandaiLink(e.target.value || draft.jan));
+  const relink = () => $('#fLinks').innerHTML = officialLinks($('#fName').value || draft.jan, draft.pb);
+  $('#fName').addEventListener('input', relink);
+  $('#fPb').addEventListener('click', e => { e.stopPropagation(); draft.pb = !draft.pb; $('#fPb').setAttribute('aria-pressed', draft.pb); relink(); });
   $('#back2').onclick = () => { $('#addStep1').hidden=false; $('#addStep2').hidden=true; setTab(curTab); };
   $('#fSave').onclick = () => {
     const name = $('#fName').value.trim();
     if(!name){ toast('商品名を入れてください'); $('#fName').focus(); return; }
     const msrp = Number(String($('#fMsrp').value).replace(/[^\d]/g,'')) || '';
     const it = { id: 'k' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), jan: $('#fJan').value.replace(/\D/g,''), name, grade: gradeOf(name),
-      msrp, msrpAuto: !!msrp && draft.msrpAuto && !msrpTouched, qty:1, status, image: draft.image, addedAt: Date.now() };
+      msrp, msrpAuto: !!msrp && draft.msrpAuto && !msrpTouched, qty:1, status, image: draft.image, pb: !!draft.pb, addedAt: Date.now() };
     items.push(it); saveItems(); render(); closeSheet('#addSheet'); toast('登録しました');
   };
 }
 const bandaiLink = s => 'https://www.google.com/search?q=' + encodeURIComponent('site:bandai-hobby.net ' + (s||''));
+const pbLink = s => 'https://www.google.com/search?q=' + encodeURIComponent('site:p-bandai.jp ' + (s||''));
+function officialLinks(name, pb){
+  const a = `<a href="${pbLink(name)}" target="_blank" rel="noopener">プレミアムバンダイで定価を確認<span>公式 ↗</span></a>`;
+  const b = `<a href="${bandaiLink(name)}" target="_blank" rel="noopener">バンダイホビーサイトで定価を確認<span>公式 ↗</span></a>`;
+  return pb ? a + b : b + a;
+}
 
 /* ---------- 詳細・編集 ---------- */
 function openDetail(id){
@@ -582,23 +695,25 @@ function openDetail(id){
     <div class="preview"><div class="thumb">${thumbHTML(it)}</div>
       <div><div class="row1" style="margin-bottom:6px">${it.grade?`<span class="grade" style="background:${gradeColor(it.grade)}">${esc(it.grade)}</span>`:''}${it.jan?`<span class="mono" style="font-size:12px;color:var(--muted)">JAN ${esc(it.jan)}</span>`:''}</div>
       <div style="font-weight:700">${esc(it.name)}</div></div></div>
-    <div class="links"><a href="${bandaiLink(it.name)}" target="_blank" rel="noopener">バンダイホビーサイトで見る<span>公式の箱絵・定価 ↗</span></a></div>
+    <div class="links">${officialLinks(it.name, it.pb)}</div>
     <div class="field"><label for="dName">商品名</label><input id="dName" value="${esc(it.name)}"></div>
     <div class="inline">
       <div class="field" style="flex:1"><label for="dMsrp">定価（円・税込）${it.msrpAuto?' <span class="price"><span class="tmp">仮</span></span>':''}</label><input id="dMsrp" class="mono" inputmode="numeric" value="${esc(it.msrp)}"></div>
       <div class="field" style="flex:1"><label for="dQty">所持数</label><input id="dQty" class="mono" inputmode="numeric" value="${it.qty}"></div>
     </div>
-    <div class="field"><label>状態</label><div class="chips" id="dSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k===it.status}">${ST[k]}</button>`).join('')}</div></div>
+    <div class="field"><label>状態</label><div class="chips" id="dSt">${Object.keys(ST).map(k=>`<button class="chip" data-s="${k}" aria-pressed="${k===it.status}">${ST[k]}</button>`).join('')}<button class="chip pbchip" id="dPb" aria-pressed="${!!it.pb}">プレバン限定</button></div></div>
     <div class="actions"><button class="btn danger" id="dDel">リストから外す</button><button class="btn primary" id="dSave">保存</button></div>
     <div class="confirm" id="dConfirm" hidden><p style="margin:0 0 10px">「${esc(it.name)}」をリストから外します。元に戻せません。</p>
       <div class="actions"><button class="btn" id="dNo">やめる</button><button class="btn danger" id="dYes">外す</button></div></div>`;
   let status = it.status;
+  let pb = !!it.pb;
+  $('#dPb').addEventListener('click', e => { e.stopPropagation(); pb = !pb; $('#dPb').setAttribute('aria-pressed', pb); });
   $('#dSt').addEventListener('click', e => { const b=e.target.closest('[data-s]'); if(!b) return; status=b.dataset.s; $('#dSt').querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',x===b)); });
   $('#dSave').onclick = () => {
     const name = $('#dName').value.trim(); if(!name){ toast('商品名を入れてください'); return; }
     const msrp = Number(String($('#dMsrp').value).replace(/[^\d]/g,'')) || '';
     if(String(msrp) !== String(it.msrp)) it.msrpAuto = false;
-    it.name = name; it.grade = gradeOf(name); it.msrp = msrp; it.status = status;
+    it.name = name; it.grade = gradeOf(name); it.msrp = msrp; it.status = status; it.pb = pb;
     it.qty = Math.max(1, parseInt($('#dQty').value,10) || 1);
     saveItems(); render(); closeSheet('#detailSheet'); toast('保存しました');
   };
