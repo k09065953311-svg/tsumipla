@@ -245,8 +245,8 @@ button{cursor:pointer}
 <div class="scrim" id="settingsSheet" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="setTitle">
     <div class="sheethead"><h2 id="setTitle">設定</h2><button class="iconbtn" data-close aria-label="閉じる">✕</button></div>
-    <p class="note">商品名と箱絵を自動で調べるには、Yahoo!か楽天の「アプリID」が必要です（どちらか片方でOK、両方あると見つかりやすくなります）。取り方は下の「マニュアル」にあります。</p>
-    <div class="field"><label for="yId">Yahoo! ショッピング Client ID</label><input id="yId" class="mono" autocomplete="off" spellcheck="false"><span class="hint">バーコード（JAN）でぴったり探せるので、こちらがおすすめです</span></div>
+    <p class="note">商品名と箱絵を自動で調べるには、楽天の「アプリID」と「アクセスキー」が必要です（無料）。取り方は下の「マニュアル」にあります。</p>
+    <div class="field"><label for="yId">Yahoo! ショッピング Client ID</label><input id="yId" class="mono" autocomplete="off" spellcheck="false"><span class="hint">※Yahoo!は今は使えません（ブラウザから直接つなげない仕組みのため）。楽天のIDを入れてください</span></div>
     <div class="field"><label for="rId">楽天 アプリID（applicationId）</label><input id="rId" class="mono" autocomplete="off" spellcheck="false"></div>
     <div class="field"><label for="rKey">楽天 アクセスキー（accessKey）</label><input id="rKey" class="mono" autocomplete="off" spellcheck="false"></div>
     <div class="actions" style="margin-bottom:12px"><button class="btn primary" id="saveKeys">保存</button><button class="btn" id="testKeys">接続テスト</button></div>
@@ -482,7 +482,9 @@ async function getJSON(url){
 async function yahoo({ jan, word }){
   const p = new URLSearchParams({ appid: settings.yahooId, results:'20', image_size:'300' });
   if(jan) p.set('jan_code', jan); else p.set('query', word);
-  const d = await getJSON('https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?' + p);
+  let d;
+  try{ const r = await fetch('https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch?' + p); d = await r.json(); }
+  catch(e){ throw new Error('Yahoo!はブラウザから直接つなげない仕組みのため、今は使えません。楽天のIDを使ってください'); }
   if(d.Error || d.error) throw new Error((d.Error && d.Error.Message) || d.error_description || 'エラー');
   return (d.hits||[]).map(h => ({ src:'Yahoo!', name:h.name, price:h.price, fixed: h.priceLabel && (h.priceLabel.fixedPrice || null),
     image:(h.exImage && h.exImage.url) || (h.image && h.image.medium) || '', url:h.url, jan:h.janCode||'' }));
@@ -516,8 +518,8 @@ async function lookup(q){
   step2(`<div class="spin" role="status" aria-label="検索中"></div><p class="note" style="text-align:center">${q.jan ? 'JAN ' + esc(q.jan) + ' を' : '「' + esc(q.word) + '」を'}調べています…</p>`);
   const hits = [], errs = [];
   const hasKey = settings.yahooId || settings.rakutenId;
-  if(settings.yahooId){ try{ hits.push(...await yahoo(q)); }catch(e){ errs.push('Yahoo!：' + e.message); } }
-  if(settings.rakutenId && (hits.length < 3)){ try{ hits.push(...await rakuten(q)); }catch(e){ errs.push('楽天：' + e.message); } }
+  if(settings.rakutenId){ try{ hits.push(...await rakuten(q)); }catch(e){ errs.push('楽天：' + e.message); } }
+  if(settings.yahooId && hits.length < 3){ try{ hits.push(...await yahoo(q)); }catch(e){ errs.push('Yahoo!：' + e.message); } }
   showForm(q, hits, errs, hasKey);
 }
 function showForm(q, hits, errs, hasKey){

@@ -149,7 +149,7 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
     <ul>
       <li><b>このアプリは商品データを持っていません。</b>何万点もあるプラモの情報を自分で集めて、新商品が出るたびに更新し続けるのは個人では無理だからです。</li>
       <li>そこで、Yahoo!ショッピングや楽天市場が無料で公開している「商品検索の窓口（API）」に、<b>数字を渡して商品名・箱絵・価格を教えてもらいます。</b></li>
-      <li>その窓口を使うには、<b>「誰が使っているか」を名乗るためのID</b>が必要です。Yahoo!は、使いすぎや迷惑行為を防ぐためにIDで利用者と使用状況を確認しています。これがアプリの設定に入れる「Client ID」です。</li>
+      <li>その窓口を使うには、<b>「誰が使っているか」を名乗るためのID</b>が必要です。お店側は、使いすぎや迷惑行為を防ぐためにIDで利用者と使用状況を確認しています。これがアプリの設定に入れる「アプリID」です。</li>
       <li><b>IDは無料</b>で、お金はかかりません。お店に送るのは「バーコードの数字」か「検索した言葉」だけで、<b>あなたのプラモのリストは送りません。</b></li>
     </ul>
   </div>
@@ -167,8 +167,8 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
       <path class="arr" d="M362 100 H448"/><path class="arr" d="M440 93 l8 7 -8 7"/>
       <text class="t" x="405" y="88" font-size="12" text-anchor="middle">① IDと数字で質問</text>
       <rect class="box" x="450" y="60" width="180" height="120" rx="14"/>
-      <text class="t" x="540" y="98" font-size="15" text-anchor="middle" font-weight="700">Yahoo!ショッピング</text>
-      <text class="t" x="540" y="120" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="t" x="540" y="98" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="t" x="540" y="120" font-size="15" text-anchor="middle" font-weight="700">の商品検索</text>
       <text class="m" x="540" y="146" font-size="12" text-anchor="middle">商品データを持っている</text>
       <path class="arr2" d="M448 145 H362"/><path class="arr2" d="M370 138 l-8 7 8 7"/>
       <text class="t" x="405" y="166" font-size="12" text-anchor="middle">② 商品名・箱絵・価格</text>
@@ -189,8 +189,8 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
       <text class="t" x="228" y="232" font-size="12">② 商品名・</text>
       <text class="t" x="228" y="250" font-size="12">箱絵・価格</text>
       <rect class="box" x="50" y="270" width="240" height="100" rx="14"/>
-      <text class="t" x="170" y="304" font-size="15" text-anchor="middle" font-weight="700">Yahoo!ショッピング</text>
-      <text class="t" x="170" y="326" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="t" x="170" y="304" font-size="15" text-anchor="middle" font-weight="700">楽天市場</text>
+      <text class="t" x="170" y="326" font-size="15" text-anchor="middle" font-weight="700">の商品検索</text>
       <text class="m" x="170" y="350" font-size="12" text-anchor="middle">商品データを持っている</text>
       <text class="m" x="170" y="405" font-size="12.5" text-anchor="middle">IDがないと①の質問ができないので、</text>
       <text class="m" x="170" y="425" font-size="12.5" text-anchor="middle">商品名を自分で打ち込むことになります</text>
@@ -200,8 +200,18 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
   <div class="callout ok"><p><b>IDは1人が取れば十分です。</b>取った人が「友達用リンク」を送れば、友達はリンクを開くだけで設定が終わります（<a href="#share">2-4</a>）。友達がそれぞれ登録する必要はありません。</p></div>
   <div class="callout ng"><p><b>IDなしでも使えます。</b>その場合は自動検索が動かないので、商品名と定価を手で入力して登録します。</p></div>
 
-  <h3 id="yahoo">2-1　Yahoo!のClient IDを取る（おすすめ）</h3>
-  <p>Yahoo!はバーコードの数字で<b>ぴったり同じ商品</b>を探せるので、こちらをおすすめします。Yahoo! JAPAN IDでログインして、登録画面に入力していきます（画面はYahoo!側のものなので、このマニュアルには写真を載せていません）。</p>
+  <h3 id="rakuten">2-1　楽天のアプリIDとアクセスキーを取る（必須）</h3>
+  <p>今のアプリは<b>楽天の商品検索</b>で商品名・箱絵・価格を調べます。楽天会員（楽天市場で買い物するときのID）でログインして登録します。</p>
+  <ol class="do">
+    <li><a href="https://webservice.rakuten.co.jp/app/create" target="_blank" rel="noopener">楽天ウェブサービスの新規アプリ作成ページ</a>を開き、楽天会員でログイン</li>
+    <li>アプリ名に <span class="mono">積みプラ帳</span>、アプリURLに上と同じURLを入力</li>
+    <li>「許可されたWebサイト」に <span class="mono">k09065953311-svg.github.io</span> を入力（<b>ここを忘れると楽天からの返事がブロックされます</b>）</li>
+    <li>利用目的は「個人のコレクション管理」、想定QPSは <span class="mono">1</span> で十分です</li>
+    <li>作成後に表示される <b>アプリID</b> と <b>アクセスキー</b> をコピー</li>
+  </ol>
+
+  <h3 id="yahoo">2-2　Yahoo!のClient ID（今は使えません）</h3>
+  <div class="callout ng"><p><b>Yahoo!のIDは今のアプリでは使えません。</b>Yahoo!の商品検索は「サーバーから使う」前提の仕組みで、スマホのブラウザから直接問い合わせると、ブラウザの安全機能（CORS）で返事が受け取れないためです。使うには間に「中継サーバー」を置く必要があり、対応を検討中です。以下は取得済みの人向けのメモとして残しています。</p></div>
   <ol class="do">
     <li><a href="https://e.developer.yahoo.co.jp/register" target="_blank" rel="noopener">アプリケーションの登録ページ</a>を開き、Yahoo! JAPAN IDでログイン</li>
     <li>「ID連携利用有無」は <span class="ui">ID連携を利用しない</span> を選ぶ（ログイン機能は使わないため）</li>
@@ -213,24 +223,14 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
   </ol>
   <div class="callout"><p>一緒に表示される <b>「シークレット」は使いません。</b>誰にも教えないでください。アプリに入れるのはClient IDだけです。</p></div>
 
-  <h3 id="rakuten">2-2　楽天のIDを取る（なくてもOK）</h3>
-  <p>Yahoo!で見つからない商品を補うために使います。楽天はバーコードの数字を「キーワード」として探すので、Yahoo!より見つかりにくいことがあります。</p>
-  <ol class="do">
-    <li><a href="https://webservice.rakuten.co.jp/app/create" target="_blank" rel="noopener">楽天ウェブサービスの新規アプリ作成ページ</a>を開き、楽天会員でログイン</li>
-    <li>アプリ名に <span class="mono">積みプラ帳</span>、アプリURLに上と同じURLを入力</li>
-    <li>「許可されたWebサイト」に <span class="mono">k09065953311-svg.github.io</span> を入力（<b>ここを忘れると楽天からの返事がブロックされます</b>）</li>
-    <li>利用目的は「個人のコレクション管理」、想定QPSは <span class="mono">1</span> で十分です</li>
-    <li>作成後に表示される <b>アプリID</b> と <b>アクセスキー</b> をコピー</li>
-  </ol>
-
   <h3>2-3　アプリに入れる</h3>
   <div class="step">
     <div>
       <ol class="do">
         <li>アプリ右上の <span class="ui">⚙</span> を押す</li>
-        <li>「Yahoo! ショッピング Client ID」にコピーしたIDを貼り付け（楽天を取った人は楽天の2つも）</li>
+        <li>「楽天 アプリID」と「楽天 アクセスキー」に、コピーした2つをそれぞれ貼り付け</li>
         <li><span class="ui">保存</span> を押す</li>
-        <li><span class="ui">接続テスト</span> を押して「Yahoo! OK（○件）」と出れば完了です</li>
+        <li><span class="ui">接続テスト</span> を押して「楽天 OK（○件）」と出れば完了です</li>
       </ol>
       <p>「NG」と出たら、IDの前後に空白が入っていないか、全部コピーできているかを確認してください。</p>
     </div>
@@ -367,8 +367,8 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
   <div class="tbl"><table>
     <thead><tr><th>相手</th><th>何に使う</th><th>送るもの</th><th>IDは</th></tr></thead>
     <tbody>
-      <tr><td><b>Yahoo!ショッピング</b></td><td>バーコードの数字から商品名・箱絵・価格を調べる</td><td>バーコードの数字／検索語、Client ID</td><td class="y">必要（無料）</td></tr>
-      <tr><td><b>楽天市場</b></td><td>Yahoo!で見つからないときの予備</td><td>バーコードの数字／検索語、アプリID</td><td class="y">あれば使う（無料）</td></tr>
+      <tr><td><b>楽天市場</b></td><td>バーコードの数字から商品名・箱絵・価格を調べる</td><td>バーコードの数字／検索語、アプリID・アクセスキー</td><td class="y">必要（無料）</td></tr>
+      <tr><td><b>Yahoo!ショッピング</b></td><td>（今は使えません。中継サーバーを用意したら予備として使う予定）</td><td>—</td><td>—</td></tr>
       <tr><td><b>バンダイホビーサイト</b></td><td>公式の定価・箱絵を<b>あなたが見に行く</b>ためのリンク</td><td>何も送らない（リンクを開くだけ）</td><td>不要</td></tr>
       <tr><td><b>GitHub Pages</b></td><td>アプリ本体を置いている場所</td><td>何も送らない</td><td>不要</td></tr>
     </tbody>
@@ -385,7 +385,7 @@ footer{margin-top:56px;font-size:12px;color:var(--muted)}
   <div class="sec-h"><span class="no">8</span><h2>困ったとき</h2></div>
   <dl class="faq">
     <dt>「ショップで見つかりませんでした」と出る</dt>
-    <dd>発売前の商品、古い商品、限定品（プレミアムバンダイ）などはショップに出ていないことがあります。商品名と定価を手で入れて登録してください。楽天のIDも入れておくと見つかる確率が上がります。</dd>
+    <dd>発売前の商品、古い商品、限定品（プレミアムバンダイ）などはショップに出ていないことがあります。商品名と定価を手で入れて登録してください。商品名で探すタブで、短い言葉（例：「HG エアリアル」）で探すと見つかることもあります。</dd>
     <dt>カメラが起動しない</dt>
     <dd>LINEなどのアプリ内ブラウザで開いていないか確認してください。Safari/Chromeで開いても動かないときは、スマホの設定でブラウザのカメラを許可してください。それでもダメなら <span class="ui">写真に撮って読む</span> か <span class="ui">番号を入力</span> を使ってください。</dd>
     <dt>商品名が長い・変な言葉が入っている</dt>
